@@ -1,0 +1,30 @@
+{
+  "name": "wallapop-alert-agent",
+  "version": "1.0.0",
+  "description": "Node.js agent that monitors Wallapop Spain for new listings, filters by keywords/price/category, excludes reserved items, and sends email alerts.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "once": "node index.js --once",
+    "help": "node index.js --help"
+  },
+  "keywords": [
+    "wallapop",
+    "scraper",
+    "agent",
+    "monitor",
+    "alerts",
+    "email"
+  ],
+  "author": "Enrique Mendoza Robaina",
+  "license": "MIT",
+  "homepage": "https://github.com/enrimr/wallapop-alert-agent",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.3.1",
+    "node-notifier": "^10.0.1",
+    "nodemailer": "^8.0.1",
+    "puppeteer": "^19.11.1"
+  }
+}
