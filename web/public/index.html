@@ -432,6 +432,10 @@
     function showForm() {
       formContainer.style.display = 'block';
       successBanner.style.display = 'none';
+      // Reset submit button state
+      submitBtn.disabled = false;
+      submitBtn.textContent = '🔔 Crear alerta gratuita';
+      errorMsg.style.display = 'none';
     }
 
     function escapeHtml(str) {
