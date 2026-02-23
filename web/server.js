@@ -247,53 +247,126 @@ app.get('/admin', adminAuth, (req, res) => {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin — Wallapop Alertas</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0fdf9;color:#1a1a2e}
-    header{background:linear-gradient(135deg,#13c1ac,#0ea897);padding:20px 32px;display:flex;align-items:center;gap:12px}
-    header h1{color:#fff;font-size:20px;font-weight:800}
-    .stats{display:flex;gap:16px;padding:24px 32px 8px;flex-wrap:wrap}
-    .stat{background:#fff;border-radius:10px;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center}
-    .stat .num{font-size:28px;font-weight:800;color:#13c1ac}
-    .stat .lbl{font-size:12px;color:#6b7280;margin-top:2px}
-    .section{padding:8px 32px 32px}
-    .section h2{font-size:14px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:8px}
-    th{background:#f8fffe;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb}
-    td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
-    tr.inactive td{opacity:0.45}
-    tr:last-child td{border-bottom:none}
-    tr:hover td{background:#f0fdf9}
-    .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-    .badge-active{background:#d1fae5;color:#065f46}
-    .badge-inactive{background:#f3f4f6;color:#9ca3af}
-    .btn-delete{color:#ef4444;text-decoration:none;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid #fecaca;border-radius:6px}
-    .btn-delete:hover{background:#fef2f2}
-    .btn-save{background:#13c1ac;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
-    .btn-save:hover{background:#0ea897}
-    .back{display:inline-block;margin:0 32px 12px;color:#13c1ac;font-size:13px;text-decoration:none}
-    @media(max-width:600px){.stats,.section{padding:12px}}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0fdf9; color: #1a1a2e; }
+
+    /* Header */
+    header { background: linear-gradient(135deg, #13c1ac, #0ea897); padding: 16px 20px; }
+    header h1 { color: #fff; font-size: 17px; font-weight: 800; }
+
+    /* Nav */
+    .nav { display: flex; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
+    .nav a { color: #13c1ac; font-size: 13px; text-decoration: none; font-weight: 600; }
+    .nav a:hover { text-decoration: underline; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px; }
+    .stat { background: #fff; border-radius: 10px; padding: 14px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
+    .stat .num { font-size: 24px; font-weight: 800; color: #13c1ac; }
+    .stat .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+    /* Sections */
+    .section { padding: 8px 16px 24px; }
+    .section h2 { font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+    /* Cards layout for mobile (replaces horizontal table) */
+    .card-list { display: flex; flex-direction: column; gap: 10px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .card-row:last-child { margin-bottom: 0; }
+    .card-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; min-width: 80px; }
+    .card-value { font-size: 13px; color: #1a1a2e; text-align: right; flex: 1; word-break: break-word; }
+
+    /* Desktop: show as table */
+    .desktop-table { display: none; }
+
+    /* Badges */
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-inactive { background: #f3f4f6; color: #9ca3af; }
+
+    /* Buttons */
+    .btn-delete { color: #ef4444; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #fecaca; border-radius: 6px; display: inline-block; }
+    .btn-delete:hover { background: #fef2f2; }
+    .btn-save { background: #13c1ac; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #0ea897; }
+
+    /* Limit form */
+    .limit-form { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+    .limit-form input { width: 60px; padding: 5px 8px; border: 1px solid #d1fae5; border-radius: 6px; font-size: 13px; text-align: center; }
+    .limit-form .lbl-max { font-size: 12px; color: #6b7280; }
+
+    /* Desktop breakpoint */
+    @media (min-width: 768px) {
+      header { padding: 20px 32px; }
+      header h1 { font-size: 20px; }
+      .nav { padding: 12px 32px; }
+      .stats { grid-template-columns: repeat(3, auto); justify-content: start; padding: 20px 32px 8px; gap: 16px; }
+      .stat { padding: 16px 28px; }
+      .stat .num { font-size: 28px; }
+      .section { padding: 8px 32px 32px; }
+
+      .card-list { display: none; }
+      .desktop-table { display: table; width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+      .desktop-table th { background: #f8fffe; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
+      .desktop-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+      .desktop-table tr.inactive td { opacity: 0.45; }
+      .desktop-table tr:last-child td { border-bottom: none; }
+      .desktop-table tr:hover td { background: #f0fdf9; }
+    }
   </style>
 </head>
 <body>
-  <header><h1>🔧 Panel de Administración — Wallapop Alertas</h1></header>
+  <header><h1>🔧 Admin — Wallapop Alertas</h1></header>
+
+  <nav class="nav">
+    <a href="/">← Volver a la web</a>
+  </nav>
 
   <div class="stats">
-    <div class="stat"><div class="num">${stats.totalActive}</div><div class="lbl">Alertas activas</div></div>
-    <div class="stat"><div class="num">${stats.totalAll}</div><div class="lbl">Total creadas</div></div>
-    <div class="stat"><div class="num">${stats.totalSeen}</div><div class="lbl">Productos procesados</div></div>
+    <div class="stat"><div class="num">${stats.totalActive}</div><div class="lbl">Activas</div></div>
+    <div class="stat"><div class="num">${stats.totalAll}</div><div class="lbl">Total</div></div>
+    <div class="stat"><div class="num">${stats.totalSeen}</div><div class="lbl">Procesados</div></div>
   </div>
 
-  <a href="/" class="back">← Volver a la web</a>
-
-  <!-- Email stats & limits -->
+  <!-- USUARIOS (mobile cards + desktop table) -->
   <div class="section">
     <h2>📧 Usuarios y límites</h2>
-    <table>
+
+    <!-- Mobile cards -->
+    <div class="card-list">
+      ${emailStats.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">Sin usuarios todavía</p>' : emailStats.map(e => `
+        <div class="card">
+          <div class="card-row">
+            <span class="card-label">Email</span>
+            <span class="card-value" style="font-size:12px">${escapeHtml(e.email)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Alertas</span>
+            <span class="card-value"><strong style="color:#13c1ac">${e.active_alerts}</strong> activas de ${e.total_alerts}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Emails env.</span>
+            <span class="card-value">${e.total_emails_sent || 0}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Límite máx.</span>
+            <span class="card-value">
+              <form method="POST" action="/admin/set-limit" class="limit-form">
+                <input type="hidden" name="email" value="${escapeHtml(e.email)}" />
+                <input type="number" name="max_alerts" value="${e.max_alerts}" min="0" max="100" />
+                <button type="submit" class="btn-save">Guardar</button>
+              </form>
+            </span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Desktop table -->
+    <table class="desktop-table">
       <thead><tr>
-        <th>Email</th>
-        <th>Alertas activas / total</th>
-        <th>Emails enviados</th>
-        <th>Límite de alertas</th>
+        <th>Email</th><th>Alertas activas / total</th><th>Emails enviados</th><th>Límite</th>
       </tr></thead>
       <tbody>
         ${emailRows || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#9ca3af">Sin usuarios todavía</td></tr>'}
@@ -301,10 +374,44 @@ app.get('/admin', adminAuth, (req, res) => {
     </table>
   </div>
 
-  <!-- Subscriptions -->
+  <!-- ALERTAS (mobile cards + desktop table) -->
   <div class="section">
     <h2>🔔 Alertas</h2>
-    <table>
+
+    <!-- Mobile cards -->
+    <div class="card-list">
+      ${subs.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">No hay alertas todavía</p>' : subs.map(s => `
+        <div class="card" style="${s.active ? '' : 'opacity:0.5'}">
+          <div class="card-row">
+            <span class="card-label">Estado</span>
+            <span class="card-value"><span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Activa' : 'Inactiva'}</span></span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Búsqueda</span>
+            <span class="card-value"><strong>${escapeHtml(s.keywords)}</strong></span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Email</span>
+            <span class="card-value" style="font-size:12px">${escapeHtml(s.email)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Precio</span>
+            <span class="card-value">${formatPrice(s.min_price, s.max_price)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">Emails</span>
+            <span class="card-value">${s.emails_sent || 0}</span>
+          </div>
+          ${s.active ? `
+          <div class="card-row" style="margin-top:6px">
+            <a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')" style="width:100%;text-align:center;">Eliminar alerta</a>
+          </div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Desktop table -->
+    <table class="desktop-table">
       <thead><tr>
         <th>Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
         <th>Categoría</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
