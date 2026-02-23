@@ -10,11 +10,6 @@ nixPkgs = [
   "cups",
   "libdrm",
   "libxkbcommon",
-  "libXcomposite",
-  "libXdamage",
-  "libXext",
-  "libXfixes",
-  "libXrandr",
   "mesa",
   "pango",
   "cairo",
@@ -23,6 +18,11 @@ nixPkgs = [
   "xorg.libX11",
   "xorg.libxcb",
   "xorg.libXcursor",
+  "xorg.libXcomposite",
+  "xorg.libXdamage",
+  "xorg.libXext",
+  "xorg.libXfixes",
+  "xorg.libXrandr",
 ]
 
 [phases.install]
