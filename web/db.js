@@ -6,7 +6,9 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const DB_PATH = path.join(__dirname, '../data/alerts.db');
+// Railway: set DB_PATH env var to /data/alerts.db and mount a volume on /data
+// Local: defaults to ./data/alerts.db
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/alerts.db');
 
 // Ensure data directory exists
 const fs = require('fs');

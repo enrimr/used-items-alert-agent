@@ -16,7 +16,8 @@ const { sendConfirmationEmail } = require('./mailer');
 const { CATEGORIES } = require('../src/config');
 
 const app = express();
-const PORT = process.env.WEB_PORT || 3000;
+// Railway injects PORT automatically; fallback to WEB_PORT or 3000
+const PORT = process.env.PORT || process.env.WEB_PORT || 3000;
 
 // Middlewares
 app.use(express.urlencoded({ extended: true }));

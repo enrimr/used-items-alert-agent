@@ -1,0 +1,33 @@
+# Nixpacks config for Railway deployment
+# Installs Chromium and required libs for Puppeteer
+
+[phases.setup]
+nixPkgs = [
+  "chromium",
+  "nss",
+  "nspr",
+  "atk",
+  "cups",
+  "libdrm",
+  "libxkbcommon",
+  "libXcomposite",
+  "libXdamage",
+  "libXext",
+  "libXfixes",
+  "libXrandr",
+  "mesa",
+  "pango",
+  "cairo",
+  "alsa-lib",
+  "expat",
+  "xorg.libX11",
+  "xorg.libxcb",
+  "xorg.libXcursor",
+]
+
+[phases.install]
+cmds = ["npm ci --omit=dev"]
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/run/current-system/sw/bin/chromium"

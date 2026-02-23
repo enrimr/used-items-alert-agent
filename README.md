@@ -188,6 +188,42 @@ wallapop-alert-agent/
 
 ---
 
+## 🚂 Deploy on Railway
+
+Railway is the recommended platform for hosting the web server (supports persistent storage, background workers and Node.js natively).
+
+### Steps
+
+1. **Fork / push** this repo to GitHub
+2. Create a new project on [railway.app](https://railway.app) → **Deploy from GitHub repo**
+3. Add a **Volume** and mount it at `/data`
+4. Set these **environment variables** in Railway:
+
+```env
+# Required
+BASE_URL=https://yourapp.up.railway.app
+EMAIL_FROM=sender@gmail.com
+EMAIL_SMTP_HOST=smtp.gmail.com
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_USER=sender@gmail.com
+EMAIL_SMTP_PASS=xxxx xxxx xxxx xxxx
+WORKER_INTERVAL_SECONDS=120
+HEADLESS=true
+
+# SQLite stored in the mounted volume
+DB_PATH=/data/alerts.db
+
+# Chromium (set automatically by nixpacks.toml — do NOT change)
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+PUPPETEER_EXECUTABLE_PATH=/run/current-system/sw/bin/chromium
+```
+
+5. Railway will auto-detect `railway.json` and `nixpacks.toml`, install Chromium and start `node server.js`
+
+> **Vercel note:** Vercel does **not** support persistent SQLite, long-running background workers or Puppeteer. Use Railway instead.
+
+---
+
 ## ⚠️ Notes
 
 - Uses Puppeteer headless browser to bypass Wallapop's CloudFront protection

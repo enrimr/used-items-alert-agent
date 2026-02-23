@@ -190,6 +190,11 @@ async function fetchItems(config, browser) {
  * Devuelve la ruta al ejecutable de Chrome/Chromium
  */
 function findChromePath() {
+  // 0. Variable de entorno explícita (Railway/Docker)
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
   // 1. Usar el Chromium de Puppeteer si existe
   try {
     const puppeteerPath = puppeteer.executablePath();
