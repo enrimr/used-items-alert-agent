@@ -135,13 +135,33 @@ function cleanupOldSeenItems() {
   getDb().prepare('DELETE FROM seen_items WHERE seen_at < ?').run(cutoff);
 }
 
+/**
+ * Obtiene estadísticas globales
+ */
+function getStats() {
+  const db = getDb();
+  const totalActive = db.prepare('SELECT COUNT(*) as count FROM subscriptions WHERE active = 1').get().count;
+  const totalAll = db.prepare('SELECT COUNT(*) as count FROM subscriptions').get().count;
+  const totalSeen = db.prepare('SELECT COUNT(*) as count FROM seen_items').get().count;
+  return { totalActive, totalAll, totalSeen };
+}
+
+/**
+ * Obtiene todas las suscripciones (activas e inactivas) para el admin
+ */
+function getAllSubscriptions() {
+  return getDb().prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
+}
+
 module.exports = {
   createSubscription,
   getActiveSubscriptions,
+  getAllSubscriptions,
   getSubscription,
   deleteSubscription,
   markItemsSeen,
   filterNewItems,
   updateLastRun,
   cleanupOldSeenItems,
+  getStats,
 };
