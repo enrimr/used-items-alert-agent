@@ -1,9 +1,24 @@
 /**
  * Módulo de email para el servidor web
  * Envía alertas con enlace de cancelación incluido
+ *
+ * Soporta dos modos:
+ * 1. Resend (RESEND_API_KEY) — recomendado en Railway (HTTP API, no SMTP)
+ * 2. SMTP/Nodemailer (EMAIL_SMTP_*) — para uso local
  */
 
 const nodemailer = require('nodemailer');
+
+/**
+ * Envía email usando Resend HTTP API
+ */
+async function sendViaResend(to, from, subject, html, text) {
+  const { Resend } = require('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const result = await resend.emails.send({ from, to, subject, html, text });
+  if (result.error) throw new Error(result.error.message || JSON.stringify(result.error));
+  return true;
+}
 
 function createTransporter() {
   const host = process.env.EMAIL_SMTP_HOST;
@@ -127,20 +142,22 @@ function buildAlertText(items, config, subscriptionId) {
 }
 
 async function sendAlertEmail(items, config, toEmail, subscriptionId) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
   const from = process.env.EMAIL_FROM || process.env.EMAIL_SMTP_USER;
+  if (!from) return false;
+
   const subject = `🆕 ${items.length} nuevo${items.length > 1 ? 's' : ''} en Wallapop: "${config.keywords}"${config.maxPrice ? ` (hasta ${config.maxPrice}€)` : ''}`;
+  const html = buildAlertHtml(items, config, subscriptionId);
+  const text = buildAlertText(items, config, subscriptionId);
 
   try {
-    await transporter.sendMail({
-      from: `"Wallapop Alertas" <${from}>`,
-      to: toEmail,
-      subject,
-      text: buildAlertText(items, config, subscriptionId),
-      html: buildAlertHtml(items, config, subscriptionId),
-    });
+    // Prefer Resend (works on Railway, no SMTP needed)
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(toEmail, `Wallapop Alertas <${from}>`, subject, html, text);
+    }
+    // Fallback: SMTP
+    const transporter = createTransporter();
+    if (!transporter) return false;
+    await transporter.sendMail({ from: `"Wallapop Alertas" <${from}>`, to: toEmail, subject, text, html });
     return true;
   } catch (err) {
     console.error(`Error enviando email a ${toEmail}:`, err.message);
@@ -149,16 +166,16 @@ async function sendAlertEmail(items, config, toEmail, subscriptionId) {
 }
 
 async function sendConfirmationEmail(toEmail, sub) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
   const from = process.env.EMAIL_FROM || process.env.EMAIL_SMTP_USER;
+  if (!from) return false;
+
   const unsubUrl = buildUnsubscribeUrl(sub.id);
   const priceInfo = [
     sub.min_price != null ? `desde ${sub.min_price}€` : '',
     sub.max_price != null ? `hasta ${sub.max_price}€` : '',
   ].filter(Boolean).join(' ');
 
+  const subject = `✅ Alerta creada: "${sub.keywords}" en Wallapop`;
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"></head>
@@ -186,12 +203,12 @@ async function sendConfirmationEmail(toEmail, sub) {
 </html>`;
 
   try {
-    await transporter.sendMail({
-      from: `"Wallapop Alertas" <${from}>`,
-      to: toEmail,
-      subject: `✅ Alerta creada: "${sub.keywords}" en Wallapop`,
-      html,
-    });
+    if (process.env.RESEND_API_KEY) {
+      return await sendViaResend(toEmail, `Wallapop Alertas <${from}>`, subject, html);
+    }
+    const transporter = createTransporter();
+    if (!transporter) return false;
+    await transporter.sendMail({ from: `"Wallapop Alertas" <${from}>`, to: toEmail, subject, html });
     return true;
   } catch (err) {
     console.error(`Error enviando confirmación a ${toEmail}:`, err.message);

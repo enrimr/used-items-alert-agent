@@ -31,18 +31,10 @@ async function main() {
   console.log('');
 
   // Verificar configuración de email
-  const emailOk = !!(
-    process.env.EMAIL_SMTP_HOST &&
-    process.env.EMAIL_SMTP_USER &&
-    process.env.EMAIL_SMTP_PASS
-  );
-
-  if (!emailOk) {
-    console.warn('⚠️  Aviso: EMAIL_SMTP_* no configurado — los emails no se enviarán');
-    console.warn('   Variables necesarias: EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASS, EMAIL_FROM');
-    console.log('');
-  } else {
-    console.log(`📧 Email configurado: ${process.env.EMAIL_SMTP_USER} → ${process.env.EMAIL_SMTP_HOST}:${process.env.EMAIL_SMTP_PORT || 587}`);
+  if (process.env.RESEND_API_KEY) {
+    console.log(`📧 Email via Resend (HTTP API) — recomendado en Railway`);
+  } else if (process.env.EMAIL_SMTP_HOST && process.env.EMAIL_SMTP_USER && process.env.EMAIL_SMTP_PASS) {
+    console.log(`📧 Email via SMTP: ${process.env.EMAIL_SMTP_USER} → ${process.env.EMAIL_SMTP_HOST}:${process.env.EMAIL_SMTP_PORT || 587}`);
     // Verify SMTP connection on startup
     try {
       const nodemailer = require('nodemailer');
@@ -57,10 +49,14 @@ async function main() {
       console.log('✅ Conexión SMTP verificada correctamente');
     } catch (err) {
       console.error(`❌ Error SMTP: ${err.message}`);
-      console.error('   Revisa EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASS');
+      console.error('   En Railway usa RESEND_API_KEY en lugar de SMTP (Railway bloquea puertos SMTP)');
     }
-    console.log('');
+  } else {
+    console.warn('⚠️  Sin config de email — los emails no se enviarán');
+    console.warn('   Opción 1 (Railway): RESEND_API_KEY=re_xxxx + EMAIL_FROM=noreply@tudominio.com');
+    console.warn('   Opción 2 (local):   EMAIL_SMTP_HOST + EMAIL_SMTP_USER + EMAIL_SMTP_PASS + EMAIL_FROM');
   }
+  console.log('');
 
   // Arrancar servidor web
   await startServer();
