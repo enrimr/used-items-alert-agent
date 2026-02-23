@@ -142,7 +142,9 @@ function buildAlertText(items, config, subscriptionId) {
 }
 
 async function sendAlertEmail(items, config, toEmail, subscriptionId) {
-  const from = process.env.EMAIL_FROM || process.env.EMAIL_SMTP_USER;
+  const from = (process.env.RESEND_API_KEY ? process.env.RESEND_EMAIL_FROM : null)
+    || process.env.EMAIL_FROM
+    || process.env.EMAIL_SMTP_USER;
   if (!from) return false;
 
   const subject = `🆕 ${items.length} nuevo${items.length > 1 ? 's' : ''} en Wallapop: "${config.keywords}"${config.maxPrice ? ` (hasta ${config.maxPrice}€)` : ''}`;
@@ -166,7 +168,9 @@ async function sendAlertEmail(items, config, toEmail, subscriptionId) {
 }
 
 async function sendConfirmationEmail(toEmail, sub) {
-  const from = process.env.EMAIL_FROM || process.env.EMAIL_SMTP_USER;
+  const from = (process.env.RESEND_API_KEY ? process.env.RESEND_EMAIL_FROM : null)
+    || process.env.EMAIL_FROM
+    || process.env.EMAIL_SMTP_USER;
   if (!from) return false;
 
   const unsubUrl = buildUnsubscribeUrl(sub.id);
