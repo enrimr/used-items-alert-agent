@@ -222,12 +222,17 @@ app.get('/admin', adminAuth, (req, res) => {
   const emailRows = emailStats.map(e => `
     <tr>
       <td style="font-size:12px">${escapeHtml(e.email)}</td>
-      <td>${e.active_alerts} / ${e.total_alerts}</td>
+      <td>
+        <span style="font-weight:700;color:#13c1ac">${e.active_alerts}</span>
+        <span style="color:#9ca3af;font-size:11px"> activas de ${e.total_alerts} creadas</span>
+      </td>
       <td>${e.total_emails_sent || 0}</td>
       <td>
         <form method="POST" action="/admin/set-limit" style="display:flex;gap:6px;align-items:center;">
           <input type="hidden" name="email" value="${escapeHtml(e.email)}" />
+          <span style="font-size:12px;color:#6b7280;">Máx:</span>
           <input type="number" name="max_alerts" value="${e.max_alerts}" min="0" max="100"
+            title="Número máximo de alertas activas permitidas para este email"
             style="width:60px;padding:4px 8px;border:1px solid #d1fae5;border-radius:6px;font-size:13px;text-align:center;" />
           <button type="submit" class="btn-save">Guardar</button>
         </form>
