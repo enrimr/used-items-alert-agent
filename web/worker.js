@@ -11,6 +11,7 @@ const {
   markItemsSeen,
   updateLastRun,
   cleanupOldSeenItems,
+  incrementEmailsSent,
 } = require('./db');
 
 const CATEGORIES = require('../src/config').CATEGORIES;
@@ -59,6 +60,7 @@ async function processSubscription(sub) {
       const sent = await sendAlertEmail(newItems, config, sub.email, sub.id);
       if (sent) {
         console.log(`  📧 [${sub.email}] "${sub.keywords}" → email enviado OK`);
+        incrementEmailsSent(sub.id);
       } else {
         console.error(`  ❌ [${sub.email}] "${sub.keywords}" → email FALLÓ (revisa EMAIL_SMTP_* en las variables de entorno)`);
       }

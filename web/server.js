@@ -11,7 +11,11 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
-const { createSubscription, getSubscription, deleteSubscription, getAllSubscriptions, getStats } = require('./db');
+const {
+  createSubscription, getSubscription, deleteSubscription,
+  getAllSubscriptions, getStats, getEmailStats,
+  countActiveAlertsByEmail, getAlertLimitForEmail, setAlertLimitForEmail,
+} = require('./db');
 const { sendConfirmationEmail } = require('./mailer');
 const { CATEGORIES } = require('../src/config');
 
@@ -69,6 +73,15 @@ app.post('/subscribe', subscribeLimiter, async (req, res) => {
   }
   if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
     return res.status(400).json({ error: 'El precio mínimo no puede ser mayor que el máximo' });
+  }
+
+  // Check alert limit per email
+  const activeCount = countActiveAlertsByEmail(email);
+  const limit = getAlertLimitForEmail(email);
+  if (activeCount >= limit) {
+    return res.status(429).json({
+      error: `Has alcanzado el límite de ${limit} alerta${limit !== 1 ? 's' : ''} activa${limit !== 1 ? 's' : ''} para este email.`
+    });
   }
 
   try {
@@ -172,6 +185,7 @@ function adminAuth(req, res, next) {
 app.get('/admin', adminAuth, (req, res) => {
   const subs = getAllSubscriptions();
   const stats = getStats();
+  const emailStats = getEmailStats();
 
   const CATEGORY_NAMES = Object.fromEntries(
     Object.entries(CATEGORIES).filter(([id]) => id !== '')
@@ -189,17 +203,34 @@ app.get('/admin', adminAuth, (req, res) => {
     return `≤ ${max}€`;
   }
 
-  const rows = subs.map(s => `
+  const subsRows = subs.map(s => `
     <tr class="${s.active ? '' : 'inactive'}">
       <td><span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Activa' : 'Inactiva'}</span></td>
       <td><strong>${escapeHtml(s.keywords)}</strong></td>
-      <td>${escapeHtml(s.email)}</td>
+      <td style="font-size:12px">${escapeHtml(s.email)}</td>
       <td>${formatPrice(s.min_price, s.max_price)}</td>
       <td>${s.category_id ? (CATEGORY_NAMES[s.category_id] || s.category_id) : '—'}</td>
-      <td>${formatDate(s.created_at)}</td>
-      <td>${formatDate(s.last_run_at)}</td>
+      <td style="font-size:12px">${formatDate(s.created_at)}</td>
+      <td style="font-size:12px">${formatDate(s.last_run_at)}</td>
+      <td>${s.emails_sent || 0}</td>
       <td>
         ${s.active ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')">Eliminar</a>` : '—'}
+      </td>
+    </tr>
+  `).join('');
+
+  const emailRows = emailStats.map(e => `
+    <tr>
+      <td style="font-size:12px">${escapeHtml(e.email)}</td>
+      <td>${e.active_alerts} / ${e.total_alerts}</td>
+      <td>${e.total_emails_sent || 0}</td>
+      <td>
+        <form method="POST" action="/admin/set-limit" style="display:flex;gap:6px;align-items:center;">
+          <input type="hidden" name="email" value="${escapeHtml(e.email)}" />
+          <input type="number" name="max_alerts" value="${e.max_alerts}" min="0" max="100"
+            style="width:60px;padding:4px 8px;border:1px solid #d1fae5;border-radius:6px;font-size:13px;text-align:center;" />
+          <button type="submit" class="btn-save">Guardar</button>
+        </form>
       </td>
     </tr>
   `).join('');
@@ -215,15 +246,15 @@ app.get('/admin', adminAuth, (req, res) => {
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0fdf9;color:#1a1a2e}
     header{background:linear-gradient(135deg,#13c1ac,#0ea897);padding:20px 32px;display:flex;align-items:center;gap:12px}
     header h1{color:#fff;font-size:20px;font-weight:800}
-    header .sub{color:rgba(255,255,255,0.8);font-size:13px;margin-left:auto}
     .stats{display:flex;gap:16px;padding:24px 32px 8px;flex-wrap:wrap}
     .stat{background:#fff;border-radius:10px;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center}
     .stat .num{font-size:28px;font-weight:800;color:#13c1ac}
     .stat .lbl{font-size:12px;color:#6b7280;margin-top:2px}
-    .table-wrap{padding:8px 32px 40px;overflow-x:auto}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-    th{background:#f8fffe;padding:11px 14px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb}
-    td{padding:11px 14px;font-size:13px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+    .section{padding:8px 32px 32px}
+    .section h2{font-size:14px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:8px}
+    th{background:#f8fffe;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e5e7eb}
+    td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
     tr.inactive td{opacity:0.45}
     tr:last-child td{border-bottom:none}
     tr:hover td{background:#f0fdf9}
@@ -232,18 +263,14 @@ app.get('/admin', adminAuth, (req, res) => {
     .badge-inactive{background:#f3f4f6;color:#9ca3af}
     .btn-delete{color:#ef4444;text-decoration:none;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid #fecaca;border-radius:6px}
     .btn-delete:hover{background:#fef2f2}
-    .back{display:inline-block;margin:0 32px 16px;color:#13c1ac;font-size:13px;text-decoration:none}
-    .back:hover{text-decoration:underline}
-    @media(max-width:600px){.stats{padding:16px};.table-wrap{padding:8px 12px 32px}}
+    .btn-save{background:#13c1ac;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+    .btn-save:hover{background:#0ea897}
+    .back{display:inline-block;margin:0 32px 12px;color:#13c1ac;font-size:13px;text-decoration:none}
+    @media(max-width:600px){.stats,.section{padding:12px}}
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <h1>🔧 Panel de Administración</h1>
-      <div class="sub">Wallapop Alertas</div>
-    </div>
-  </header>
+  <header><h1>🔧 Panel de Administración — Wallapop Alertas</h1></header>
 
   <div class="stats">
     <div class="stat"><div class="num">${stats.totalActive}</div><div class="lbl">Alertas activas</div></div>
@@ -253,22 +280,32 @@ app.get('/admin', adminAuth, (req, res) => {
 
   <a href="/" class="back">← Volver a la web</a>
 
-  <div class="table-wrap">
+  <!-- Email stats & limits -->
+  <div class="section">
+    <h2>📧 Usuarios y límites</h2>
     <table>
-      <thead>
-        <tr>
-          <th>Estado</th>
-          <th>Búsqueda</th>
-          <th>Email</th>
-          <th>Precio</th>
-          <th>Categoría</th>
-          <th>Creada</th>
-          <th>Último run</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>Email</th>
+        <th>Alertas activas / total</th>
+        <th>Emails enviados</th>
+        <th>Límite de alertas</th>
+      </tr></thead>
       <tbody>
-        ${rows || '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af">No hay alertas creadas todavía</td></tr>'}
+        ${emailRows || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#9ca3af">Sin usuarios todavía</td></tr>'}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Subscriptions -->
+  <div class="section">
+    <h2>🔔 Alertas</h2>
+    <table>
+      <thead><tr>
+        <th>Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
+        <th>Categoría</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
+      </tr></thead>
+      <tbody>
+        ${subsRows || '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
       </tbody>
     </table>
   </div>
@@ -279,6 +316,14 @@ app.get('/admin', adminAuth, (req, res) => {
 app.get('/admin/delete/:id', adminAuth, (req, res) => {
   const { id } = req.params;
   deleteSubscription(id);
+  res.redirect('/admin');
+});
+
+app.post('/admin/set-limit', adminAuth, (req, res) => {
+  const { email, max_alerts } = req.body;
+  if (email && max_alerts !== undefined) {
+    setAlertLimitForEmail(email, Math.max(0, parseInt(max_alerts, 10) || 0));
+  }
   res.redirect('/admin');
 });
 

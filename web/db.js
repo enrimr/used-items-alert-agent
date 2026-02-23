@@ -31,15 +31,16 @@ function getDb() {
 function initSchema() {
   getDb().exec(`
     CREATE TABLE IF NOT EXISTS subscriptions (
-      id          TEXT PRIMARY KEY,
-      email       TEXT NOT NULL,
-      keywords    TEXT NOT NULL,
-      min_price   REAL,
-      max_price   REAL,
-      category_id TEXT DEFAULT '',
-      created_at  INTEGER NOT NULL,
-      last_run_at INTEGER,
-      active      INTEGER NOT NULL DEFAULT 1
+      id           TEXT PRIMARY KEY,
+      email        TEXT NOT NULL,
+      keywords     TEXT NOT NULL,
+      min_price    REAL,
+      max_price    REAL,
+      category_id  TEXT DEFAULT '',
+      created_at   INTEGER NOT NULL,
+      last_run_at  INTEGER,
+      active       INTEGER NOT NULL DEFAULT 1,
+      emails_sent  INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE INDEX IF NOT EXISTS idx_subscriptions_email ON subscriptions(email);
@@ -53,7 +54,17 @@ function initSchema() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_seen_items_sub ON seen_items(subscription_id);
+
+    CREATE TABLE IF NOT EXISTS email_limits (
+      email      TEXT PRIMARY KEY,
+      max_alerts INTEGER NOT NULL DEFAULT 10
+    );
   `);
+
+  // Migrate: add emails_sent column if it doesn't exist (for existing DBs)
+  try {
+    getDb().exec('ALTER TABLE subscriptions ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0');
+  } catch (e) { /* column already exists */ }
 }
 
 /**
@@ -153,6 +164,59 @@ function getAllSubscriptions() {
   return getDb().prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
 }
 
+/**
+ * Incrementa el contador de emails enviados para una suscripción
+ */
+function incrementEmailsSent(subscriptionId) {
+  getDb().prepare('UPDATE subscriptions SET emails_sent = emails_sent + 1 WHERE id = ?').run(subscriptionId);
+}
+
+/**
+ * Cuenta las alertas activas de un email
+ */
+function countActiveAlertsByEmail(email) {
+  return getDb().prepare(
+    'SELECT COUNT(*) as count FROM subscriptions WHERE email = ? AND active = 1'
+  ).get(email.toLowerCase().trim()).count;
+}
+
+/**
+ * Obtiene el límite de alertas para un email (por defecto: MAX_ALERTS_PER_EMAIL o 10)
+ */
+function getAlertLimitForEmail(email) {
+  const row = getDb().prepare('SELECT max_alerts FROM email_limits WHERE email = ?').get(email.toLowerCase().trim());
+  if (row) return row.max_alerts;
+  return parseInt(process.env.MAX_ALERTS_PER_EMAIL || '10', 10);
+}
+
+/**
+ * Establece el límite de alertas para un email específico
+ */
+function setAlertLimitForEmail(email, maxAlerts) {
+  getDb().prepare(`
+    INSERT INTO email_limits (email, max_alerts) VALUES (?, ?)
+    ON CONFLICT(email) DO UPDATE SET max_alerts = excluded.max_alerts
+  `).run(email.toLowerCase().trim(), maxAlerts);
+}
+
+/**
+ * Obtiene todos los emails únicos con sus stats para el admin
+ */
+function getEmailStats() {
+  return getDb().prepare(`
+    SELECT
+      s.email,
+      COUNT(*) as total_alerts,
+      SUM(CASE WHEN s.active = 1 THEN 1 ELSE 0 END) as active_alerts,
+      SUM(s.emails_sent) as total_emails_sent,
+      COALESCE(el.max_alerts, ?) as max_alerts
+    FROM subscriptions s
+    LEFT JOIN email_limits el ON el.email = s.email
+    GROUP BY s.email
+    ORDER BY total_alerts DESC
+  `).all(parseInt(process.env.MAX_ALERTS_PER_EMAIL || '10', 10));
+}
+
 module.exports = {
   createSubscription,
   getActiveSubscriptions,
@@ -164,4 +228,9 @@ module.exports = {
   updateLastRun,
   cleanupOldSeenItems,
   getStats,
+  incrementEmailsSent,
+  countActiveAlertsByEmail,
+  getAlertLimitForEmail,
+  setAlertLimitForEmail,
+  getEmailStats,
 };
