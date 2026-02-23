@@ -39,7 +39,26 @@ async function main() {
 
   if (!emailOk) {
     console.warn('⚠️  Aviso: EMAIL_SMTP_* no configurado — los emails no se enviarán');
-    console.warn('   Configura EMAIL_SMTP_HOST, EMAIL_SMTP_USER y EMAIL_SMTP_PASS en .env');
+    console.warn('   Variables necesarias: EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASS, EMAIL_FROM');
+    console.log('');
+  } else {
+    console.log(`📧 Email configurado: ${process.env.EMAIL_SMTP_USER} → ${process.env.EMAIL_SMTP_HOST}:${process.env.EMAIL_SMTP_PORT || 587}`);
+    // Verify SMTP connection on startup
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_SMTP_HOST,
+        port: parseInt(process.env.EMAIL_SMTP_PORT || '587', 10),
+        secure: process.env.EMAIL_SMTP_SECURE === 'true',
+        auth: { user: process.env.EMAIL_SMTP_USER, pass: process.env.EMAIL_SMTP_PASS },
+        tls: { rejectUnauthorized: false },
+      });
+      await transporter.verify();
+      console.log('✅ Conexión SMTP verificada correctamente');
+    } catch (err) {
+      console.error(`❌ Error SMTP: ${err.message}`);
+      console.error('   Revisa EMAIL_SMTP_HOST, EMAIL_SMTP_USER, EMAIL_SMTP_PASS');
+    }
     console.log('');
   }
 

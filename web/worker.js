@@ -54,10 +54,13 @@ async function processSubscription(sub) {
     const newItems = filterNewItems(sub.id, items);
 
     if (newItems.length > 0) {
+      console.log(`  🆕 [${sub.email}] "${sub.keywords}" → ${newItems.length} nuevos productos, enviando email...`);
       // Enviar email con los nuevos productos
       const sent = await sendAlertEmail(newItems, config, sub.email, sub.id);
       if (sent) {
-        console.log(`  📧 [${sub.email}] "${sub.keywords}" → ${newItems.length} nuevos → email enviado`);
+        console.log(`  📧 [${sub.email}] "${sub.keywords}" → email enviado OK`);
+      } else {
+        console.error(`  ❌ [${sub.email}] "${sub.keywords}" → email FALLÓ (revisa EMAIL_SMTP_* en las variables de entorno)`);
       }
       // Marcar como vistos
       markItemsSeen(sub.id, newItems.map(i => i.id));
