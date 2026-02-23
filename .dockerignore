@@ -1,0 +1,8 @@
+node_modules
+.env
+encontrados.json
+data/
+docs/
+*.log
+.git
+.gitignore
