@@ -1,73 +1,134 @@
-# 🔍 Wallapop Agent
+# 🔍 Wallapop Alert Agent
 
-Agente que monitoriza automáticamente Wallapop España y te notifica cuando aparecen **nuevos productos** que cumplan tus criterios. Filtra automáticamente productos **con reserva** y **vendidos**.
+> Monitor Wallapop Spain for new listings and get notified instantly — via CLI, email, or a public web interface.
 
-## ✨ Características
+![Wallapop Alertas Web](docs/screenshot.png)
 
-- 🔎 **Búsqueda por palabras clave** (requerido)
-- 💶 **Filtro de rango de precio** (min/max, opcional)
-- 🏷️ **Filtro por categoría** (opcional)
-- 🚫 **Excluye automáticamente** productos con reserva y vendidos
-- 🔔 **Notificaciones de escritorio** al encontrar nuevos productos
-- 💾 **Guarda resultados** en JSON para historial
-- 🔄 **Polling continuo** con intervalo configurable
-- 🛡️ **Resistente a errores** con reintentos automáticos
+---
 
-## 📋 Requisitos
+## ✨ Features
 
-- Node.js 16+
-- Chrome/Chromium (se descarga automáticamente con Puppeteer)
+- 🔎 **Keyword search** with price range and category filters
+- 🚫 **Excludes reserved and sold** items automatically
+- 📧 **Email alerts** with product photo, price, description and direct link
+- 🌐 **Web interface** — anyone can subscribe without registering
+- ❌ **One-click unsubscribe** link in every email
+- 💾 **Persistent history** — no duplicate alerts between restarts
+- 🛡️ **Auto-recovery** on browser crashes
+- 🔄 **Continuous polling** with configurable interval
 
-## 🚀 Instalación
+---
+
+## 🚀 Quick Start
 
 ```bash
-# Clonar / entrar al directorio
-cd wallapop-agent
-
-# Instalar dependencias
+# Clone and install
+git clone https://github.com/enrimr/wallapop-alert-agent.git
+cd wallapop-alert-agent
 npm install
 
-# Copiar configuración
+# Configure
 cp .env.example .env
-
-# Editar tu configuración
-nano .env   # o code .env
+# Edit .env with your settings
 ```
 
-## ⚙️ Configuración (`.env`)
+---
 
+## 🖥️ Mode 1 — CLI (personal use)
+
+Monitor Wallapop for your own searches from the terminal.
+
+```bash
+npm start           # Continuous monitoring loop
+npm run once        # Single search
+node index.js --help
+```
+
+**Configure `.env`:**
 ```env
-# REQUERIDO: palabras de búsqueda
 KEYWORDS=iphone 13
-
-# OPCIONAL: rango de precio en €
 MIN_PRICE=100
 MAX_PRICE=500
-
-# OPCIONAL: categoría (ver lista abajo)
-CATEGORY_ID=12579
-
-# Intervalo de comprobación en segundos (mínimo 30)
+CATEGORY_ID=12579       # Optional
 POLL_INTERVAL_SECONDS=90
-
-# Número máximo de resultados por búsqueda
-MAX_RESULTS=40
-
-# Navegador sin ventana (true) o con ventana (false)
-HEADLESS=true
-
-# Notificaciones de escritorio
-DESKTOP_NOTIFICATIONS=true
-
-# Guardar resultados en archivo
-SAVE_TO_FILE=true
-OUTPUT_FILE=./encontrados.json
 ```
 
-### 🏷️ IDs de Categorías
+---
 
-| ID | Categoría |
-|-----|-----------|
+## 🌐 Mode 2 — Web Server (public service)
+
+Run a web interface where anyone can create their own Wallapop alerts.
+
+```bash
+npm run web         # Start web server + background worker
+npm run web:only    # Start web server only (no worker)
+```
+
+**How it works:**
+1. User fills in the form (keywords, price, category, email)
+2. Alert is saved to SQLite — no account needed
+3. Background worker polls Wallapop every 2 minutes for each subscription
+4. New products → HTML email with unsubscribe link
+5. User clicks "❌ Eliminar esta alerta" → alert deleted
+
+**Configure `.env` for web:**
+```env
+# Web server
+WEB_PORT=3000
+BASE_URL=http://localhost:3000   # Your public domain in production
+
+# Worker interval
+WORKER_INTERVAL_SECONDS=120
+
+# Email (SMTP)
+EMAIL_FROM=turemitente@gmail.com
+EMAIL_SMTP_HOST=smtp.gmail.com
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_SECURE=false
+EMAIL_SMTP_USER=turemitente@gmail.com
+EMAIL_SMTP_PASS=xxxx xxxx xxxx xxxx   # Gmail App Password
+```
+
+---
+
+## ⚙️ Full `.env` Reference
+
+```env
+# ── SEARCH (CLI mode) ──────────────────────────────────────
+KEYWORDS=iphone 13           # Required
+MIN_PRICE=100                # Optional
+MAX_PRICE=500                # Optional
+CATEGORY_ID=12579            # Optional (see categories below)
+POLL_INTERVAL_SECONDS=90     # Minimum 30
+MAX_RESULTS=40
+HEADLESS=true
+
+# ── NOTIFICATIONS (CLI mode) ───────────────────────────────
+DESKTOP_NOTIFICATIONS=true
+SAVE_TO_FILE=true
+OUTPUT_FILE=./encontrados.json
+
+# ── EMAIL ──────────────────────────────────────────────────
+EMAIL_TO=me@example.com      # CLI mode recipient
+EMAIL_FROM=sender@gmail.com
+EMAIL_SMTP_HOST=smtp.gmail.com
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_SECURE=false
+EMAIL_SMTP_USER=sender@gmail.com
+EMAIL_SMTP_PASS=app_password
+
+# ── WEB SERVER ─────────────────────────────────────────────
+WEB_PORT=3000
+BASE_URL=http://localhost:3000
+WORKER_INTERVAL_SECONDS=120
+```
+
+---
+
+## 🏷️ Category IDs
+
+| ID | Category |
+|----|----------|
 | `12465` | Tecnología |
 | `12579` | Móviles y telefonía |
 | `15000` | Informática |
@@ -83,84 +144,61 @@ OUTPUT_FILE=./encontrados.json
 | `12469` | Bebés y niños |
 | `12471` | Otros |
 
-## 🎯 Uso
+---
 
-### Modo continuo (recomendado)
-```bash
-npm start
-# o
-node index.js
-```
-
-### Búsqueda única
-```bash
-npm run once
-# o
-node index.js --once
-```
-
-### Ayuda
-```bash
-node index.js --help
-```
-
-### Variables desde línea de comandos
-```bash
-# Buscar iPhone 13 entre 100€ y 500€
-KEYWORDS="iphone 13" MIN_PRICE=100 MAX_PRICE=500 node index.js
-
-# Buscar MacBook en categoría Informática cada 2 minutos
-KEYWORDS="macbook pro" CATEGORY_ID=15000 POLL_INTERVAL_SECONDS=120 node index.js
-
-# PlayStation 5 sin límite de precio, una sola búsqueda
-KEYWORDS="ps5 playstation 5" node index.js --once
-```
-
-## 📦 Archivo de resultados
-
-Los productos encontrados se guardan en `encontrados.json` con el siguiente formato:
-
-```json
-[
-  {
-    "id": "abc123",
-    "title": "iPhone 13 128GB Negro",
-    "price": 450,
-    "currency": "EUR",
-    "location": "Madrid, Madrid",
-    "seller": "usuario123",
-    "url": "https://es.wallapop.com/item/iphone-13-abc123",
-    "reserved": false,
-    "sold": false,
-    "detectedAt": "2024-01-15T10:30:00.000Z"
-  }
-]
-```
-
-## 🏗️ Estructura del proyecto
+## 🏗️ Project Structure
 
 ```
-wallapop-agent/
-├── index.js          # Punto de entrada
+wallapop-alert-agent/
+│
+├── index.js              # CLI entry point
+├── server.js             # Web server entry point
+│
 ├── src/
-│   ├── agent.js      # Bucle principal del agente
-│   ├── config.js     # Carga y validación de configuración
-│   ├── scraper.js    # Scraper con Puppeteer + intercepción de API
-│   ├── store.js      # Store de items vistos (evita duplicados)
-│   └── notifier.js   # Sistema de notificaciones y salida
-├── .env              # Tu configuración (no subir a git)
-├── .env.example      # Plantilla de configuración
-├── encontrados.json  # Resultados guardados (generado automáticamente)
-└── package.json
+│   ├── agent.js          # CLI polling loop with auto-recovery
+│   ├── scraper.js        # Puppeteer scraper (intercepts /api/v3/search/section)
+│   ├── config.js         # Loads and validates .env
+│   ├── store.js          # Persistent seen-items store (JSON)
+│   ├── notifier.js       # Console output + desktop notifications
+│   └── emailer.js        # SMTP email for CLI mode
+│
+├── web/
+│   ├── server.js         # Express routes: /, /subscribe, /unsubscribe/:id
+│   ├── worker.js         # Background worker for all subscriptions
+│   ├── mailer.js         # HTML email templates with unsubscribe link
+│   ├── db.js             # SQLite: subscriptions + seen items per user
+│   └── public/
+│       └── index.html    # Frontend form (no framework, pure HTML/CSS/JS)
+│
+├── docs/
+│   └── screenshot.png    # Web interface screenshot
+│
+├── .env.example          # Configuration template
+└── LICENSE               # MIT
 ```
 
-## ⚠️ Notas
+---
 
-- El agente usa un navegador headless para evitar el bloqueo de Wallapop a peticiones directas
-- Se recomienda un intervalo mínimo de 60-90 segundos para no sobrecargar el servidor
-- Los productos ya vistos se recuerdan entre reinicios gracias al archivo JSON
-- Los productos con más de 30 días se limpian automáticamente del historial
+## 📧 Gmail App Password
 
-## 📄 Licencia
+1. Enable 2-Step Verification on your Google account
+2. Go to https://myaccount.google.com/apppasswords
+3. Create an app password for "Mail"
+4. Use it as `EMAIL_SMTP_PASS` in `.env`
 
-ISC
+---
+
+## ⚠️ Notes
+
+- Uses Puppeteer headless browser to bypass Wallapop's CloudFront protection
+- Recommended minimum interval: 60-90 seconds to avoid overloading the server
+- The web worker polls all active subscriptions sequentially with a 2s delay between each
+- Seen items are stored per-subscription in SQLite (web) or JSON file (CLI)
+
+---
+
+## 📄 License
+
+MIT © [Enrique Mendoza](https://github.com/enrimr)
+
+*If you use this project, a mention or star ⭐ is appreciated!*
