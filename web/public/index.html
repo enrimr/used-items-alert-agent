@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallapop Alertas — Recibe avisos de nuevos productos</title>
+  <meta name="description" content="Crea alertas gratuitas de Wallapop y recibe un email cuando aparezcan nuevos productos que cumplan tus criterios." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal: #13c1ac;
+      --teal-dark: #0ea897;
+      --orange: #e95f26;
+      --bg: #f0fdf9;
+      --card: #ffffff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --error: #ef4444;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 16px 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+      text-align: center;
+      padding: 48px 20px 56px;
+      margin: 0 -16px 0;
+      clip-path: ellipse(100% 100% at 50% 0%);
+    }
+    header .logo { font-size: 36px; margin-bottom: 8px; }
+    header h1 {
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+    header p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.88);
+      max-width: 400px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* ── Features strip ── */
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin: 20px auto 28px;
+      max-width: 640px;
+    }
+    .feature {
+      background: #fff;
+      border-radius: 50px;
+      padding: 7px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      max-width: 520px;
+      margin: 0 auto;
+      box-shadow: 0 4px 24px rgba(19,193,172,0.12);
+      border: 1px solid rgba(19,193,172,0.1);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    label .hint {
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(19,193,172,0.15);
+    }
+    input::placeholder { color: #b0b8c1; }
+
+    .price-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+    .select-wrapper::after {
+      content: '▾';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+      letter-spacing: 0.2px;
+    }
+    .btn-submit:hover { opacity: 0.92; }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ── Error message ── */
+    .error-msg {
+      display: none;
+      color: var(--error);
+      font-size: 13px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #fef2f2;
+      border-radius: 7px;
+      border: 1px solid #fecaca;
+    }
+
+    /* ── Success state ── */
+    .success-banner {
+      display: none;
+      text-align: center;
+      padding: 24px 0 8px;
+    }
+    .success-banner .icon { font-size: 48px; margin-bottom: 12px; }
+    .success-banner h3 { font-size: 20px; font-weight: 700; color: var(--teal-dark); margin-bottom: 8px; }
+    .success-banner p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .success-banner .back-link {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--teal);
+      font-size: 14px;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .success-banner .back-link:hover { text-decoration: underline; }
+
+    /* ── Info note ── */
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 16px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* ── How it works ── */
+    .how {
+      max-width: 520px;
+      margin: 32px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+    .how-step {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+    .how-step .step-icon { font-size: 28px; margin-bottom: 8px; }
+    .how-step h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .how-step p { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer a { color: var(--teal); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .card { padding: 24px 18px; }
+      .price-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">🔍</div>
+    <h1>Wallapop Alertas</h1>
+    <p>Recibe un email cuando aparezcan nuevos productos sin reserva que cumplan tu búsqueda</p>
+  </header>
+
+  <!-- Features strip -->
+  <div class="features">
+    <div class="feature">🚫 Sin reserva</div>
+    <div class="feature">📧 Email al instante</div>
+    <div class="feature">✨ Sin registro</div>
+    <div class="feature">🗑️ Cancela cuando quieras</div>
+  </div>
+
+  <!-- Form card -->
+  <div class="card">
+    <h2>📬 Crear alerta</h2>
+
+    <div id="form-container">
+      <form id="alert-form" novalidate>
+
+        <div class="form-group">
+          <label for="keywords">¿Qué buscas? <span class="hint">(requerido)</span></label>
+          <input
+            type="text"
+            id="keywords"
+            name="keywords"
+            placeholder="ej: iphone 13, ps5, bicicleta..."
+            required
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Tu email <span class="hint">(requerido)</span></label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="tuemail@ejemplo.com"
+            required
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="form-group price-row">
+          <div>
+            <label for="min_price">Precio mínimo <span class="hint">(€)</span></label>
+            <input type="number" id="min_price" name="min_price" placeholder="0" min="0" step="1" />
+          </div>
+          <div>
+            <label for="max_price">Precio máximo <span class="hint">(€)</span></label>
+            <input type="number" id="max_price" name="max_price" placeholder="sin límite" min="0" step="1" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="category_id">Categoría <span class="hint">(opcional)</span></label>
+          <div class="select-wrapper">
+            <select id="category_id" name="category_id">
+              <option value="">— Todas las categorías —</option>
+              <option value="12465">Tecnología</option>
+              <option value="12579">Móviles y telefonía</option>
+              <option value="15000">Informática</option>
+              <option value="12545">Moda y accesorios</option>
+              <option value="12543">Motor</option>
+              <option value="12463">Deporte y ocio</option>
+              <option value="12459">Hogar y jardín</option>
+              <option value="12467">Televisión y audio</option>
+              <option value="12461">Consolas y videojuegos</option>
+              <option value="12473">Cámaras y fotografía</option>
+              <option value="14000">Coleccionismo</option>
+              <option value="12449">Libros y música</option>
+              <option value="12469">Bebés y niños</option>
+              <option value="12471">Otros</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <button type="submit" class="btn-submit" id="submit-btn">
+          🔔 Crear alerta gratuita
+        </button>
+      </form>
+
+      <p class="note">
+        Sin registro · Sin spam · Cancela con un clic desde cualquier email
+      </p>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-banner" id="success-banner">
+      <div class="icon">🎉</div>
+      <h3>¡Alerta creada!</h3>
+      <p id="success-msg">Te avisaremos por email cuando aparezcan nuevos productos.</p>
+      <a class="back-link" onclick="showForm()">← Crear otra alerta</a>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="how">
+    <div class="how-step">
+      <div class="step-icon">✍️</div>
+      <h4>1. Crea tu alerta</h4>
+      <p>Pon tus palabras clave, precio y categoría</p>
+    </div>
+    <div class="how-step">
+      <div class="step-icon">🤖</div>
+      <h4>2. El agente busca</h4>
+      <p>Monitoriza Wallapop cada pocos minutos</p>
+    </div>
+    <div class="how-step">
+      <div class="step-icon">📧</div>
+      <h4>3. Recibe el email</h4>
+      <p>Te avisamos al instante, sin spam</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>Hecho con ❤️ · <a href="https://github.com/enriquemendozarobaina/wallapop-alert-agent" target="_blank">GitHub</a> · MIT License</p>
+  </footer>
+
+  <script>
+    const form = document.getElementById('alert-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const errorMsg = document.getElementById('error-msg');
+    const successBanner = document.getElementById('success-banner');
+    const formContainer = document.getElementById('form-container');
+    const successMsgEl = document.getElementById('success-msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Creando alerta...';
+
+      const formData = new FormData(form);
+      const body = Object.fromEntries(formData.entries());
+
+      // Client-side validation
+      if (!body.keywords || body.keywords.trim().length < 2) {
+        showError('Por favor escribe qué estás buscando');
+        return;
+      }
+      if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+        showError('Por favor introduce un email válido');
+        return;
+      }
+      if (body.min_price && body.max_price && parseFloat(body.min_price) > parseFloat(body.max_price)) {
+        showError('El precio mínimo no puede ser mayor que el máximo');
+        return;
+      }
+
+      try {
+        const res = await fetch('/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          const email = body.email;
+          const keywords = body.keywords;
+          successMsgEl.innerHTML = `Te avisaremos a <strong>${email}</strong> cuando aparezcan nuevos productos para "<strong>${escapeHtml(keywords)}</strong>".<br><br>Comprueba tu bandeja de entrada — te hemos enviado un email de confirmación.`;
+          formContainer.style.display = 'none';
+          successBanner.style.display = 'block';
+          form.reset();
+        } else {
+          showError(data.error || 'Error al crear la alerta. Inténtalo de nuevo.');
+        }
+      } catch (err) {
+        showError('Error de conexión. Inténtalo de nuevo.');
+      }
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '🔔 Crear alerta gratuita';
+    }
+
+    function showForm() {
+      formContainer.style.display = 'block';
+      successBanner.style.display = 'none';
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+</body>
+</html>

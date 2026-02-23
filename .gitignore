@@ -3,3 +3,4 @@ node_modules/
 encontrados.json
 *.log
 .DS_Store
+data/
