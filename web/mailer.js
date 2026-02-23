@@ -10,14 +10,46 @@
 const nodemailer = require('nodemailer');
 
 /**
- * Envía email usando Resend HTTP API
+ * Envía email usando la API HTTP de Resend directamente (compatible con Node 16)
  */
 async function sendViaResend(to, from, subject, html, text) {
-  const { Resend } = require('resend');
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const result = await resend.emails.send({ from, to, subject, html, text });
-  if (result.error) throw new Error(result.error.message || JSON.stringify(result.error));
-  return true;
+  const https = require('https');
+  const payload = JSON.stringify({ from, to, subject, html, text });
+
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(true);
+          } else {
+            reject(new Error(parsed.message || parsed.name || `HTTP ${res.statusCode}: ${data}`));
+          }
+        } catch (e) {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(true);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+          }
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
 }
 
 function createTransporter() {
