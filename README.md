@@ -201,23 +201,41 @@ Railway supports persistent volumes, background workers and Docker natively.
 **Steps:**
 
 1. **Fork / push** this repo to GitHub
-2. Create a new project on [railway.app](https://railway.app) → **Deploy from GitHub repo**
-3. Add a **Volume** and mount it at `/data`
-4. Set these **environment variables** in Railway:
+2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo** → select your fork
+3. Railway will detect the `Dockerfile` and start the first deploy
+4. **Create a persistent Volume** for the SQLite database (see below ↓)
+5. Set the **environment variables** listed below
+6. Railway will redeploy automatically
+
+#### 💾 Creating the persistent Volume (important!)
+
+Without a volume, the SQLite database is **lost on every redeploy**. Follow these steps:
+
+1. In your Railway project, click on your **service** (not the project)
+2. Go to the **Volumes** tab (in the service settings sidebar)
+3. Click **+ New Volume**
+4. Set:
+   - **Mount path**: `/data`
+   - **Size**: 1 GB (free tier)
+5. Click **Create**
+6. Add the environment variable `DB_PATH=/data/alerts.db`
+7. Railway will redeploy — from now on the database persists across deploys ✅
+
+> ℹ️ If you don't see the **Volumes** tab, make sure you are inside the **service** settings, not the project settings.
+
+#### 🔑 Environment variables
 
 ```env
 BASE_URL=https://yourapp.up.railway.app
 EMAIL_FROM=noreply@tudominio.com
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended (Railway blocks SMTP)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended — Railway blocks SMTP
 RESEND_EMAIL_FROM=noreply@tudominio.com
 WORKER_INTERVAL_SECONDS=120
 HEADLESS=true
-DB_PATH=/data/alerts.db
+DB_PATH=/data/alerts.db                  # must match your volume mount path
 ADMIN_PASSWORD=yourpassword
 MAX_ALERTS_PER_EMAIL=10
 ```
-
-5. Railway auto-detects `railway.json` + `Dockerfile`, installs Chromium and starts `node server.js`
 
 > ⚠️ Railway **blocks outbound SMTP** (ports 587/465). Use **Resend** (`RESEND_API_KEY`) instead of `EMAIL_SMTP_*`.
 
