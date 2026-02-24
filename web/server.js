@@ -23,6 +23,9 @@ const app = express();
 // Railway injects PORT automatically; fallback to WEB_PORT or 3000
 const PORT = process.env.PORT || process.env.WEB_PORT || 3000;
 
+// Trust Railway/Render/proxy X-Forwarded-For header for rate limiting
+app.set('trust proxy', 1);
+
 // Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
