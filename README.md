@@ -188,11 +188,17 @@ wallapop-alert-agent/
 
 ---
 
-## 🚂 Deploy on Railway
+## ☁️ Deploy
 
-Railway is the recommended platform for hosting the web server (supports persistent storage, background workers and Node.js natively).
+> **Vercel note:** Vercel does **not** support persistent SQLite, long-running background workers or Puppeteer. Use Railway or Render instead.
 
-### Steps
+---
+
+### 🚂 Railway
+
+Railway supports persistent volumes, background workers and Docker natively.
+
+**Steps:**
 
 1. **Fork / push** this repo to GitHub
 2. Create a new project on [railway.app](https://railway.app) → **Deploy from GitHub repo**
@@ -200,27 +206,54 @@ Railway is the recommended platform for hosting the web server (supports persist
 4. Set these **environment variables** in Railway:
 
 ```env
-# Required
 BASE_URL=https://yourapp.up.railway.app
-EMAIL_FROM=sender@gmail.com
-EMAIL_SMTP_HOST=smtp.gmail.com
-EMAIL_SMTP_PORT=587
-EMAIL_SMTP_USER=sender@gmail.com
-EMAIL_SMTP_PASS=xxxx xxxx xxxx xxxx
+EMAIL_FROM=noreply@tudominio.com
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended (Railway blocks SMTP)
+RESEND_EMAIL_FROM=noreply@tudominio.com
 WORKER_INTERVAL_SECONDS=120
 HEADLESS=true
-
-# SQLite stored in the mounted volume
 DB_PATH=/data/alerts.db
-
-# Chromium (set automatically by nixpacks.toml — do NOT change)
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-PUPPETEER_EXECUTABLE_PATH=/run/current-system/sw/bin/chromium
+ADMIN_PASSWORD=yourpassword
+MAX_ALERTS_PER_EMAIL=10
 ```
 
-5. Railway will auto-detect `railway.json` and `nixpacks.toml`, install Chromium and start `node server.js`
+5. Railway auto-detects `railway.json` + `Dockerfile`, installs Chromium and starts `node server.js`
 
-> **Vercel note:** Vercel does **not** support persistent SQLite, long-running background workers or Puppeteer. Use Railway instead.
+> ⚠️ Railway **blocks outbound SMTP** (ports 587/465). Use **Resend** (`RESEND_API_KEY`) instead of `EMAIL_SMTP_*`.
+
+---
+
+### 🎨 Render
+
+Render supports Docker deploys with persistent disks and free tier.
+
+**Steps:**
+
+1. **Fork / push** this repo to GitHub
+2. Go to [render.com](https://render.com) → **New → Web Service** → connect your repo
+3. Choose **Docker** as the runtime (Render detects the `Dockerfile` automatically)
+4. Set **Start Command**: `node server.js`
+5. Add a **Persistent Disk**:
+   - Mount path: `/data`
+   - Size: 1 GB (free tier allows 1 GB)
+6. Set these **environment variables** in Render:
+
+```env
+BASE_URL=https://yourapp.onrender.com
+EMAIL_FROM=noreply@tudominio.com
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended (Render may block SMTP)
+RESEND_EMAIL_FROM=noreply@tudominio.com
+WORKER_INTERVAL_SECONDS=120
+HEADLESS=true
+DB_PATH=/data/alerts.db
+ADMIN_PASSWORD=yourpassword
+MAX_ALERTS_PER_EMAIL=10
+```
+
+7. Click **Create Web Service** — Render will build the Docker image and deploy
+
+> ⚠️ Free tier on Render **spins down after 15 min of inactivity**. Upgrade to Starter ($7/mo) for always-on service.
+> ⚠️ Render may also **block outbound SMTP**. Use **Resend** to be safe.
 
 ---
 
