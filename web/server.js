@@ -372,8 +372,8 @@ app.get('/admin', adminAuth, (req, res) => {
     .card-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; min-width: 80px; }
     .card-value { font-size: 13px; color: #1a1a2e; text-align: right; flex: 1; word-break: break-word; }
 
-    /* Desktop: show as table */
-    .desktop-table { display: none; }
+    /* Desktop: show as table (default hidden, shown by media queries below) */
+    .desktop-table, .users-desktop-table, .alerts-desktop-table { display: none; }
 
     /* Badges */
     .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
@@ -420,7 +420,6 @@ app.get('/admin', adminAuth, (req, res) => {
     }
 
     .desktop-table {
-      display: none;
       width: 100%;
       border-collapse: collapse;
       background: #fff;
