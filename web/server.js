@@ -39,10 +39,30 @@ const subscribeLimiter = rateLimit({
 });
 
 // ────────────────────────────────────────────
-// GET / → Página principal
+// GET / → Página principal (con AdSense si está configurado)
 // ────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const adsenseId = process.env.ADSENSE_CLIENT_ID;
+
+  // If no AdSense ID configured, serve static file directly (faster)
+  if (!adsenseId) {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+
+  // Inject AdSense script + replace client ID placeholder in ad slots
+  const fs = require('fs');
+  const htmlPath = path.join(__dirname, 'public', 'index.html');
+  let html = fs.readFileSync(htmlPath, 'utf8');
+
+  // 1. Inject the AdSense loader script in <head>
+  const adsenseScript = `\n  <!-- Google AdSense -->\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`;
+  html = html.replace('</head>', `${adsenseScript}\n</head>`);
+
+  // 2. Replace placeholder in ad slot ins tags
+  html = html.replace(/__ADSENSE_CLIENT_ID__/g, adsenseId);
+
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
 });
 
 // ────────────────────────────────────────────
