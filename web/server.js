@@ -449,10 +449,11 @@ app.get('/admin', adminAuth, (req, res) => {
       <thead><tr>
         <th>Email</th><th>Alertas activas / total</th><th>Emails enviados</th><th>Límite</th>
       </tr></thead>
-      <tbody>
+      <tbody id="users-tbody">
         ${emailRows || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#9ca3af">Sin usuarios todavía</td></tr>'}
       </tbody>
     </table>
+    <div id="users-pagination" style="display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap;"></div>
   </div>
 
   <!-- ALERTAS (mobile cards + desktop table) -->
@@ -610,8 +611,50 @@ app.get('/admin', adminAuth, (req, res) => {
       applyFilters();
     }
 
+    // ── Users table pagination ──────────────────────────────────────
+    const USERS_PAGE_SIZE = 20;
+    let usersPage = 1;
+
+    function getUserRows() {
+      return Array.from(document.querySelectorAll('#users-tbody tr'));
+    }
+
+    function renderUsersPage() {
+      const rows = getUserRows();
+      const total = rows.length;
+      const start = (usersPage - 1) * USERS_PAGE_SIZE;
+      const end = start + USERS_PAGE_SIZE;
+      rows.forEach((r, i) => r.style.display = (i >= start && i < end) ? '' : 'none');
+      renderUsersPagination(total);
+    }
+
+    function renderUsersPagination(total) {
+      const pages = Math.ceil(total / USERS_PAGE_SIZE);
+      const el = document.getElementById('users-pagination');
+      el.innerHTML = '';
+      if (pages <= 1) return;
+
+      const btn = (label, page, disabled, active) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.disabled = disabled;
+        b.onclick = () => { usersPage = page; renderUsersPage(); };
+        b.style.cssText = 'padding:5px 11px;border-radius:6px;border:1.5px solid ' +
+          (active ? '#13c1ac' : '#d1fae5') + ';background:' +
+          (active ? '#13c1ac' : '#fff') + ';color:' +
+          (active ? '#fff' : '#13c1ac') + ';font-size:13px;font-weight:600;cursor:pointer;';
+        if (disabled) b.style.opacity = '0.4';
+        return b;
+      };
+
+      el.appendChild(btn('←', usersPage - 1, usersPage === 1, false));
+      for (let i = 1; i <= pages; i++) el.appendChild(btn(i, i, false, i === usersPage));
+      el.appendChild(btn('→', usersPage + 1, usersPage === pages, false));
+    }
+
     // Init on load
     applyFilters();
+    renderUsersPage();
   </script>
 </body>
 </html>`);
