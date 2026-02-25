@@ -336,11 +336,27 @@ app.get('/admin', adminAuth, (req, res) => {
     .nav a { color: #13c1ac; font-size: 13px; text-decoration: none; font-weight: 600; }
     .nav a:hover { text-decoration: underline; }
 
-    /* Stats */
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px; }
-    .stat { background: #fff; border-radius: 10px; padding: 14px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; }
-    .stat .num { font-size: 24px; font-weight: 800; color: #13c1ac; }
-    .stat .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    /* Stats — horizontal scroll on mobile, single row on desktop */
+    .stats {
+      display: flex;
+      gap: 10px;
+      padding: 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .stats::-webkit-scrollbar { display: none; }
+    .stat {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-align: center;
+      flex: 0 0 auto;
+      min-width: 100px;
+    }
+    .stat .num { font-size: 22px; font-weight: 800; color: #13c1ac; white-space: nowrap; }
+    .stat .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; white-space: nowrap; }
 
     /* Sections */
     .section { padding: 8px 16px 24px; }
