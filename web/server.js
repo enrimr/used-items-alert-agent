@@ -611,6 +611,14 @@ app.get('/admin', adminAuth, (req, res) => {
   </div>
 
   <script>
+    // Data for filtering mobile cards (injected from server)
+    const alertSubs = ${JSON.stringify(subs.map(s => ({
+      keywords: s.keywords,
+      email: s.email,
+      active: !!s.active,
+      freq: s.email_frequency || 'immediate',
+    })))};
+
     const PAGE_SIZE = 10;
     let currentPage = 1;
     let filteredRows = [];
@@ -635,6 +643,7 @@ app.get('/admin', adminAuth, (req, res) => {
         thumb.style.transform = 'translateX(0)';
       }
 
+      // Filter desktop table rows
       filteredRows = getRows().filter(row => {
         const text = row.innerText.toLowerCase();
         const isActive = !row.classList.contains('inactive');
@@ -645,6 +654,17 @@ app.get('/admin', adminAuth, (req, res) => {
         if (activeOnly && !isActive) return false;
         if (freq && rowFreq !== freq) return false;
         return true;
+      });
+
+      // Filter mobile cards too
+      document.querySelectorAll('.alerts-card-list .card').forEach((card, i) => {
+        const sub = alertSubs[i];
+        if (!sub) return;
+        let show = true;
+        if (search && !(sub.keywords + ' ' + sub.email).toLowerCase().includes(search)) show = false;
+        if (activeOnly && !sub.active) show = false;
+        if (freq && sub.freq !== freq) show = false;
+        card.style.display = show ? '' : 'none';
       });
 
       currentPage = 1;
