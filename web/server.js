@@ -13,7 +13,8 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const {
   createSubscription, getSubscription, deleteSubscription,
-  reactivateSubscription, updateFrequency, updateSubscription,
+  reactivateSubscription, hardDeleteSubscription,
+  updateFrequency, updateSubscription,
   getAllSubscriptions, getStats, getEmailStats,
   countActiveAlertsByEmail, getAlertLimitForEmail, setAlertLimitForEmail,
 } = require('./db');
@@ -282,11 +283,15 @@ app.get('/admin', adminAuth, (req, res) => {
       <td style="font-size:12px">${formatDate(s.created_at)}</td>
       <td style="font-size:12px">${formatDate(s.last_run_at)}</td>
       <td>${s.emails_sent || 0}</td>
-      <td style="white-space:nowrap">
+      <td style="white-space:nowrap;display:flex;flex-direction:column;gap:4px;">
         ${s.active
           ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')">Eliminar</a>`
           : `<a href="/admin/reactivate/${s.id}" class="btn-reactivate">Reactivar</a>`
         }
+        <a href="/admin/hard-delete/${s.id}" class="btn-hard-delete"
+           onclick="return confirm('⚠️ BORRADO DEFINITIVO: esta alerta y su historial se eliminarán permanentemente de la base de datos. ¿Continuar?')">
+          🗑️ Borrar definitivo
+        </a>
       </td>
     </tr>
   `).join('');
@@ -362,6 +367,8 @@ app.get('/admin', adminAuth, (req, res) => {
     .btn-delete:hover { background: #fef2f2; }
     .btn-reactivate { color: #13c1ac; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #d1fae5; border-radius: 6px; display: inline-block; }
     .btn-reactivate:hover { background: #f0fdf9; }
+    .btn-hard-delete { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; display: inline-block; margin-top: 2px; }
+    .btn-hard-delete:hover { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
     .btn-save { background: #13c1ac; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-save:hover { background: #0ea897; }
 
@@ -508,6 +515,12 @@ app.get('/admin/delete/:id', adminAuth, (req, res) => {
 app.get('/admin/reactivate/:id', adminAuth, (req, res) => {
   const { id } = req.params;
   reactivateSubscription(id);
+  res.redirect('/admin');
+});
+
+app.get('/admin/hard-delete/:id', adminAuth, (req, res) => {
+  const { id } = req.params;
+  hardDeleteSubscription(id);
   res.redirect('/admin');
 });
 

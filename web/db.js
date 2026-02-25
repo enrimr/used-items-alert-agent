@@ -127,6 +127,16 @@ function reactivateSubscription(id) {
 }
 
 /**
+ * Elimina permanentemente una suscripción y sus seen_items de la BD
+ */
+function hardDeleteSubscription(id) {
+  const db = getDb();
+  db.prepare('DELETE FROM seen_items WHERE subscription_id = ?').run(id);
+  const result = db.prepare('DELETE FROM subscriptions WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+/**
  * Actualiza la frecuencia de emails de una suscripción
  */
 function updateFrequency(id, frequency) {
@@ -275,6 +285,7 @@ module.exports = {
   getSubscription,
   deleteSubscription,
   reactivateSubscription,
+  hardDeleteSubscription,
   updateFrequency,
   updateSubscription,
   markItemsSeen,
