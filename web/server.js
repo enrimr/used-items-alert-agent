@@ -13,7 +13,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const {
   createSubscription, getSubscription, deleteSubscription,
-  reactivateSubscription, updateFrequency,
+  reactivateSubscription, updateFrequency, updateSubscription,
   getAllSubscriptions, getStats, getEmailStats,
   countActiveAlertsByEmail, getAlertLimitForEmail, setAlertLimitForEmail,
 } = require('./db');
@@ -231,10 +231,40 @@ app.get('/admin', adminAuth, (req, res) => {
 
   const FREQ_LABELS = { immediate: '⚡ Inmediato', daily: '📅 Diario', weekly: '📆 Semanal' };
 
+  const categoryOptions = Object.entries(CATEGORIES)
+    .filter(([id]) => id !== '')
+    .map(([id, name]) => `<option value="${id}">${name}</option>`)
+    .join('');
+
   const subsRows = subs.map(s => `
     <tr class="${s.active ? '' : 'inactive'}">
       <td><span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Activa' : 'Inactiva'}</span></td>
-      <td><strong>${escapeHtml(s.keywords)}</strong></td>
+      <td>
+        <details>
+          <summary style="cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;gap:6px;">
+            ${escapeHtml(s.keywords)}
+            <span style="font-size:10px;color:#13c1ac;font-weight:400;">✏️ editar</span>
+          </summary>
+          <form method="POST" action="/admin/edit/${s.id}"
+            style="margin-top:8px;padding:10px;background:#f8fffe;border-radius:8px;border:1px solid #d1fae5;display:grid;gap:6px;">
+            <input name="keywords" value="${escapeHtml(s.keywords)}" required
+              style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;width:100%;" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <input name="min_price" type="number" value="${s.min_price||''}" placeholder="Min €" min="0"
+                style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;" />
+              <input name="max_price" type="number" value="${s.max_price||''}" placeholder="Max €" min="0"
+                style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;" />
+            </div>
+            <select name="category_id" style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;">
+              <option value="">— Todas las categorías —</option>
+              ${Object.entries(CATEGORIES).filter(([id]) => id !== '').map(([id, name]) =>
+                `<option value="${id}" ${s.category_id === id ? 'selected' : ''}>${name}</option>`
+              ).join('')}
+            </select>
+            <button type="submit" class="btn-save" style="width:100%;">Guardar cambios</button>
+          </form>
+        </details>
+      </td>
       <td style="font-size:12px">${escapeHtml(s.email)}</td>
       <td>${formatPrice(s.min_price, s.max_price)}</td>
       <td>${s.category_id ? (CATEGORY_NAMES[s.category_id] || s.category_id) : '—'}</td>
@@ -485,6 +515,20 @@ app.post('/admin/set-frequency', adminAuth, (req, res) => {
   const { id, frequency } = req.body;
   if (id && frequency) {
     updateFrequency(id, frequency);
+  }
+  res.redirect('/admin');
+});
+
+app.post('/admin/edit/:id', adminAuth, (req, res) => {
+  const { id } = req.params;
+  const { keywords, min_price, max_price, category_id } = req.body;
+  if (id && keywords && keywords.trim().length >= 2) {
+    updateSubscription(id, {
+      keywords,
+      minPrice: min_price || null,
+      maxPrice: max_price || null,
+      categoryId: category_id || '',
+    });
   }
   res.redirect('/admin');
 });

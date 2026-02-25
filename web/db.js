@@ -136,6 +136,23 @@ function updateFrequency(id, frequency) {
 }
 
 /**
+ * Actualiza los campos editables de una suscripción (keywords, precio, categoría)
+ */
+function updateSubscription(id, { keywords, minPrice, maxPrice, categoryId }) {
+  getDb().prepare(`
+    UPDATE subscriptions
+    SET keywords = ?, min_price = ?, max_price = ?, category_id = ?
+    WHERE id = ?
+  `).run(
+    (keywords || '').trim(),
+    minPrice !== '' && minPrice != null ? parseFloat(minPrice) : null,
+    maxPrice !== '' && maxPrice != null ? parseFloat(maxPrice) : null,
+    categoryId || '',
+    id
+  );
+}
+
+/**
  * Marca items como vistos para una suscripción
  */
 function markItemsSeen(subscriptionId, itemIds) {
@@ -259,6 +276,7 @@ module.exports = {
   deleteSubscription,
   reactivateSubscription,
   updateFrequency,
+  updateSubscription,
   markItemsSeen,
   filterNewItems,
   updateLastRun,
