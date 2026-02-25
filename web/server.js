@@ -528,7 +528,7 @@ app.get('/admin', adminAuth, (req, res) => {
         style="padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;color:#6b7280;">
         ✕ Limpiar
       </button>
-      <span id="filter-count" style="font-size:12px;color:#9ca3af;white-space:nowrap;"></span>
+      <span id="filter-count" style="font-size:12px;color:#9ca3af;white-space:nowrap;min-width:120px;display:inline-block;text-align:right;"></span>
     </div>
 
     <!-- Mobile cards -->
