@@ -29,7 +29,8 @@ app.set('trust proxy', 1);
 // Middlewares
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Disable automatic index.html serving so our GET / handler can inject AdSense
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // Rate limiting: máximo 5 suscripciones por IP cada 15 minutos
 const subscribeLimiter = rateLimit({
