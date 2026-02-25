@@ -13,6 +13,7 @@ const {
   updateLastDigest,
   cleanupOldSeenItems,
   incrementEmailsSent,
+  incrementEmailsFailed,
 } = require('./db');
 
 const DIGEST_STORE = new Map(); // subscriptionId → accumulated new items
@@ -91,6 +92,7 @@ async function processSubscription(sub) {
           incrementEmailsSent(sub.id);
         } else {
           console.error(`  ❌ [${sub.email}] "${sub.keywords}" → email FALLÓ`);
+          incrementEmailsFailed(sub.id);
         }
       } else {
         // Accumulate for digest

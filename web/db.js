@@ -68,6 +68,7 @@ function initSchema() {
     'ALTER TABLE subscriptions ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0',
     "ALTER TABLE subscriptions ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'immediate'",
     'ALTER TABLE subscriptions ADD COLUMN last_digest_at INTEGER',
+    'ALTER TABLE subscriptions ADD COLUMN emails_failed INTEGER NOT NULL DEFAULT 0',
   ];
   for (const sql of migrations) {
     try { getDb().exec(sql); } catch (e) { /* column already exists */ }
@@ -208,14 +209,39 @@ function cleanupOldSeenItems() {
 }
 
 /**
- * Obtiene estadísticas globales
+ * Obtiene estadísticas globales enriquecidas para el dashboard
  */
 function getStats() {
   const db = getDb();
-  const totalActive = db.prepare('SELECT COUNT(*) as count FROM subscriptions WHERE active = 1').get().count;
-  const totalAll = db.prepare('SELECT COUNT(*) as count FROM subscriptions').get().count;
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) as totalAll,
+      SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as totalActive,
+      SUM(CASE WHEN active = 0 THEN 1 ELSE 0 END) as totalDeleted,
+      SUM(emails_sent) as totalEmailsSent,
+      SUM(COALESCE(emails_failed, 0)) as totalEmailsFailed,
+      COUNT(DISTINCT email) as totalUsers
+    FROM subscriptions
+  `).get();
   const totalSeen = db.prepare('SELECT COUNT(*) as count FROM seen_items').get().count;
-  return { totalActive, totalAll, totalSeen };
+
+  const sent = row.totalEmailsSent || 0;
+  const failed = row.totalEmailsFailed || 0;
+  const totalAttempts = sent + failed;
+  const successRate = totalAttempts > 0 ? Math.round((sent / totalAttempts) * 100) : 100;
+  const deletedPct = row.totalAll > 0 ? Math.round((row.totalDeleted / row.totalAll) * 100) : 0;
+
+  return {
+    totalActive: row.totalActive || 0,
+    totalAll: row.totalAll || 0,
+    totalDeleted: row.totalDeleted || 0,
+    totalUsers: row.totalUsers || 0,
+    totalEmailsSent: sent,
+    totalEmailsFailed: failed,
+    successRate,
+    deletedPct,
+    totalSeen,
+  };
 }
 
 /**
@@ -230,6 +256,13 @@ function getAllSubscriptions() {
  */
 function incrementEmailsSent(subscriptionId) {
   getDb().prepare('UPDATE subscriptions SET emails_sent = emails_sent + 1 WHERE id = ?').run(subscriptionId);
+}
+
+/**
+ * Incrementa el contador de emails fallidos para una suscripción
+ */
+function incrementEmailsFailed(subscriptionId) {
+  getDb().prepare('UPDATE subscriptions SET emails_failed = emails_failed + 1 WHERE id = ?').run(subscriptionId);
 }
 
 /**
@@ -295,6 +328,7 @@ module.exports = {
   cleanupOldSeenItems,
   getStats,
   incrementEmailsSent,
+  incrementEmailsFailed,
   countActiveAlertsByEmail,
   getAlertLimitForEmail,
   setAlertLimitForEmail,

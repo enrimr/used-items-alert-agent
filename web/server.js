@@ -405,9 +405,20 @@ app.get('/admin', adminAuth, (req, res) => {
   </nav>
 
   <div class="stats">
-    <div class="stat"><div class="num">${stats.totalActive}</div><div class="lbl">Activas</div></div>
-    <div class="stat"><div class="num">${stats.totalAll}</div><div class="lbl">Total</div></div>
-    <div class="stat"><div class="num">${stats.totalSeen}</div><div class="lbl">Procesados</div></div>
+    <div class="stat"><div class="num">${stats.totalActive}</div><div class="lbl">Alertas activas</div></div>
+    <div class="stat"><div class="num">${stats.totalAll}</div><div class="lbl">Total alertas</div></div>
+    <div class="stat"><div class="num">${stats.totalUsers}</div><div class="lbl">Usuarios</div></div>
+    <div class="stat"><div class="num">${stats.totalEmailsSent}</div><div class="lbl">Emails enviados</div></div>
+    <div class="stat" style="${stats.totalEmailsFailed > 0 ? 'border:2px solid #fecaca' : ''}">
+      <div class="num" style="color:${stats.totalEmailsFailed > 0 ? '#ef4444' : '#13c1ac'}">${stats.totalEmailsFailed}</div>
+      <div class="lbl">Emails fallidos</div>
+    </div>
+    <div class="stat">
+      <div class="num" style="color:${stats.successRate >= 90 ? '#13c1ac' : stats.successRate >= 70 ? '#f59e0b' : '#ef4444'}">${stats.successRate}%</div>
+      <div class="lbl">Tasa de éxito</div>
+    </div>
+    <div class="stat"><div class="num">${stats.totalDeleted}</div><div class="lbl">Eliminadas (${stats.deletedPct}%)</div></div>
+    <div class="stat"><div class="num">${stats.totalSeen}</div><div class="lbl">Productos vistos</div></div>
   </div>
 
   <!-- USUARIOS (mobile cards + desktop table) -->
@@ -532,7 +543,7 @@ app.get('/admin', adminAuth, (req, res) => {
   </div>
 
   <script>
-    const PAGE_SIZE = 25;
+    const PAGE_SIZE = 10;
     let currentPage = 1;
     let filteredRows = [];
 
@@ -612,7 +623,7 @@ app.get('/admin', adminAuth, (req, res) => {
     }
 
     // ── Users table pagination ──────────────────────────────────────
-    const USERS_PAGE_SIZE = 20;
+    const USERS_PAGE_SIZE = 10;
     let usersPage = 1;
 
     function getUserRows() {
