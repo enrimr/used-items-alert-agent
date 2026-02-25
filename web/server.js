@@ -70,7 +70,7 @@ app.get('/', (req, res) => {
 // POST /subscribe → Crear nueva alerta
 // ────────────────────────────────────────────
 app.post('/subscribe', subscribeLimiter, async (req, res) => {
-  const { email, keywords, min_price, max_price, category_id } = req.body;
+  const { email, keywords, min_price, max_price, category_id, email_frequency } = req.body;
 
   // Validación básica
   if (!email || !keywords) {
@@ -115,6 +115,7 @@ app.post('/subscribe', subscribeLimiter, async (req, res) => {
       minPrice,
       maxPrice,
       categoryId: category_id || '',
+      frequency: email_frequency || 'immediate',
     });
 
     const sub = getSubscription(id);
@@ -227,6 +228,8 @@ app.get('/admin', adminAuth, (req, res) => {
     return `≤ ${max}€`;
   }
 
+  const FREQ_LABELS = { immediate: '⚡ Inmediato', daily: '📅 Diario', weekly: '📆 Semanal' };
+
   const subsRows = subs.map(s => `
     <tr class="${s.active ? '' : 'inactive'}">
       <td><span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Activa' : 'Inactiva'}</span></td>
@@ -234,6 +237,7 @@ app.get('/admin', adminAuth, (req, res) => {
       <td style="font-size:12px">${escapeHtml(s.email)}</td>
       <td>${formatPrice(s.min_price, s.max_price)}</td>
       <td>${s.category_id ? (CATEGORY_NAMES[s.category_id] || s.category_id) : '—'}</td>
+      <td style="font-size:11px;white-space:nowrap">${FREQ_LABELS[s.email_frequency] || s.email_frequency || '⚡ Inmediato'}</td>
       <td style="font-size:12px">${formatDate(s.created_at)}</td>
       <td style="font-size:12px">${formatDate(s.last_run_at)}</td>
       <td>${s.emails_sent || 0}</td>
@@ -438,10 +442,10 @@ app.get('/admin', adminAuth, (req, res) => {
     <table class="desktop-table">
       <thead><tr>
         <th>Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
-        <th>Categoría</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
+        <th>Categoría</th><th>Frecuencia</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
       </tr></thead>
       <tbody>
-        ${subsRows || '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
+        ${subsRows || '<tr><td colspan="10" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
       </tbody>
     </table>
   </div>

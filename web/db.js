@@ -31,16 +31,18 @@ function getDb() {
 function initSchema() {
   getDb().exec(`
     CREATE TABLE IF NOT EXISTS subscriptions (
-      id           TEXT PRIMARY KEY,
-      email        TEXT NOT NULL,
-      keywords     TEXT NOT NULL,
-      min_price    REAL,
-      max_price    REAL,
-      category_id  TEXT DEFAULT '',
-      created_at   INTEGER NOT NULL,
-      last_run_at  INTEGER,
-      active       INTEGER NOT NULL DEFAULT 1,
-      emails_sent  INTEGER NOT NULL DEFAULT 0
+      id              TEXT PRIMARY KEY,
+      email           TEXT NOT NULL,
+      keywords        TEXT NOT NULL,
+      min_price       REAL,
+      max_price       REAL,
+      category_id     TEXT DEFAULT '',
+      created_at      INTEGER NOT NULL,
+      last_run_at     INTEGER,
+      active          INTEGER NOT NULL DEFAULT 1,
+      emails_sent     INTEGER NOT NULL DEFAULT 0,
+      email_frequency TEXT NOT NULL DEFAULT 'immediate',
+      last_digest_at  INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_subscriptions_email ON subscriptions(email);
@@ -61,22 +63,37 @@ function initSchema() {
     );
   `);
 
-  // Migrate: add emails_sent column if it doesn't exist (for existing DBs)
-  try {
-    getDb().exec('ALTER TABLE subscriptions ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0');
-  } catch (e) { /* column already exists */ }
+  // Migrations for existing DBs
+  const migrations = [
+    'ALTER TABLE subscriptions ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0',
+    "ALTER TABLE subscriptions ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'immediate'",
+    'ALTER TABLE subscriptions ADD COLUMN last_digest_at INTEGER',
+  ];
+  for (const sql of migrations) {
+    try { getDb().exec(sql); } catch (e) { /* column already exists */ }
+  }
 }
 
 /**
  * Crea una nueva suscripción
+ * @param {string} frequency - 'immediate' | 'daily' | 'weekly'
  */
-function createSubscription({ email, keywords, minPrice, maxPrice, categoryId }) {
+function createSubscription({ email, keywords, minPrice, maxPrice, categoryId, frequency = 'immediate' }) {
   const id = uuidv4();
+  const validFrequencies = ['immediate', 'daily', 'weekly'];
+  const freq = validFrequencies.includes(frequency) ? frequency : 'immediate';
   getDb().prepare(`
-    INSERT INTO subscriptions (id, email, keywords, min_price, max_price, category_id, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, email.toLowerCase().trim(), keywords.trim(), minPrice || null, maxPrice || null, categoryId || '', Date.now());
+    INSERT INTO subscriptions (id, email, keywords, min_price, max_price, category_id, created_at, email_frequency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, email.toLowerCase().trim(), keywords.trim(), minPrice || null, maxPrice || null, categoryId || '', Date.now(), freq);
   return id;
+}
+
+/**
+ * Actualiza el timestamp del último digest enviado
+ */
+function updateLastDigest(subscriptionId) {
+  getDb().prepare('UPDATE subscriptions SET last_digest_at = ? WHERE id = ?').run(Date.now(), subscriptionId);
 }
 
 /**
@@ -226,6 +243,7 @@ module.exports = {
   markItemsSeen,
   filterNewItems,
   updateLastRun,
+  updateLastDigest,
   cleanupOldSeenItems,
   getStats,
   incrementEmailsSent,
