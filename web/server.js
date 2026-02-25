@@ -299,7 +299,7 @@ app.get('/admin', adminAuth, (req, res) => {
   `).join('');
 
   const emailRows = emailStats.map(e => `
-    <tr>
+    <tr data-active="${e.active_alerts}">
       <td style="font-size:12px">${escapeHtml(e.email)}</td>
       <td>
         <span style="font-weight:700;color:#13c1ac">${e.active_alerts}</span>
@@ -724,17 +724,10 @@ app.get('/admin', adminAuth, (req, res) => {
       }
       localStorage.setItem('admin_users_active', activeOnly);
 
-      // Filter rows: hide users with 0 active alerts
+      // Filter rows using data-active attribute set in the HTML
       getUserRows().forEach(row => {
-        if (activeOnly) {
-          // first cell: email, second cell contains "X activas de Y"
-          const text = row.innerText;
-          const match = text.match(/(\d+)\s+activas/);
-          const active = match ? parseInt(match[1]) : 0;
-          row.style.display = active > 0 ? '' : 'none';
-        } else {
-          row.style.display = '';
-        }
+        const activeCount = parseInt(row.getAttribute('data-active') || '0', 10);
+        row.style.display = (!activeOnly || activeCount > 0) ? '' : 'none';
       });
 
       // Rebuild users pagination
