@@ -441,7 +441,18 @@ app.get('/admin', adminAuth, (req, res) => {
 
   <!-- USUARIOS (mobile cards + desktop table) -->
   <div class="section">
-    <h2>📧 Usuarios y límites</h2>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+      <h2 style="margin-bottom:0;">📧 Usuarios y límites</h2>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-left:4px;">
+        <div style="position:relative;width:38px;height:21px;">
+          <input type="checkbox" id="filter-users-active" onchange="applyUsersFilter()"
+            style="opacity:0;width:0;height:0;position:absolute;" />
+          <span id="users-toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
+          <span id="users-toggle-thumb" style="position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
+        </div>
+        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Con alertas activas</span>
+      </label>
+    </div>
 
     <!-- Mobile cards -->
     <div class="card-list">
@@ -699,9 +710,50 @@ app.get('/admin', adminAuth, (req, res) => {
       el.appendChild(btn('→', usersPage + 1, usersPage === pages, false));
     }
 
+    // ── Users active filter ─────────────────────────────────────────
+    function applyUsersFilter() {
+      const activeOnly = document.getElementById('filter-users-active').checked;
+      const track = document.getElementById('users-toggle-track');
+      const thumb = document.getElementById('users-toggle-thumb');
+      if (activeOnly) {
+        track.style.background = '#13c1ac';
+        thumb.style.transform = 'translateX(18px)';
+      } else {
+        track.style.background = '#e5e7eb';
+        thumb.style.transform = 'translateX(0)';
+      }
+      localStorage.setItem('admin_users_active', activeOnly);
+
+      // Filter rows: hide users with 0 active alerts
+      getUserRows().forEach(row => {
+        if (activeOnly) {
+          // first cell: email, second cell contains "X activas de Y"
+          const text = row.innerText;
+          const match = text.match(/(\d+)\s+activas/);
+          const active = match ? parseInt(match[1]) : 0;
+          row.style.display = active > 0 ? '' : 'none';
+        } else {
+          row.style.display = '';
+        }
+      });
+
+      // Rebuild users pagination
+      const visibleRows = getUserRows().filter(r => r.style.display !== 'none');
+      usersPage = 1;
+      // Re-run pagination on visible rows
+      const total = visibleRows.length;
+      const start = 0;
+      const end = USERS_PAGE_SIZE;
+      visibleRows.forEach((r, i) => r.style.display = (i < end) ? '' : 'none');
+      renderUsersPagination(total);
+    }
+
     // Persist toggle state across redirects using localStorage
     const savedActiveOnly = localStorage.getItem('admin_active_only') === 'true';
     if (savedActiveOnly) document.getElementById('filter-active-only').checked = true;
+
+    const savedUsersActive = localStorage.getItem('admin_users_active') === 'true';
+    if (savedUsersActive) document.getElementById('filter-users-active').checked = true;
 
     const origApply = applyFilters;
     applyFilters = function() {
@@ -711,7 +763,7 @@ app.get('/admin', adminAuth, (req, res) => {
 
     // Init on load
     applyFilters();
-    renderUsersPage();
+    applyUsersFilter();
   </script>
 </body>
 </html>`);
