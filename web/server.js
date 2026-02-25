@@ -13,6 +13,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const {
   createSubscription, getSubscription, deleteSubscription,
+  reactivateSubscription, updateFrequency,
   getAllSubscriptions, getStats, getEmailStats,
   countActiveAlertsByEmail, getAlertLimitForEmail, setAlertLimitForEmail,
 } = require('./db');
@@ -237,12 +238,25 @@ app.get('/admin', adminAuth, (req, res) => {
       <td style="font-size:12px">${escapeHtml(s.email)}</td>
       <td>${formatPrice(s.min_price, s.max_price)}</td>
       <td>${s.category_id ? (CATEGORY_NAMES[s.category_id] || s.category_id) : '—'}</td>
-      <td style="font-size:11px;white-space:nowrap">${FREQ_LABELS[s.email_frequency] || s.email_frequency || '⚡ Inmediato'}</td>
+      <td>
+        <form method="POST" action="/admin/set-frequency" style="display:flex;gap:4px;align-items:center;">
+          <input type="hidden" name="id" value="${s.id}" />
+          <select name="frequency" onchange="this.form.submit()"
+            style="padding:3px 6px;border:1px solid #d1fae5;border-radius:5px;font-size:11px;background:#fff;cursor:pointer;">
+            <option value="immediate" ${(s.email_frequency||'immediate')==='immediate'?'selected':''}>⚡ Inmediato</option>
+            <option value="daily" ${s.email_frequency==='daily'?'selected':''}>📅 Diario</option>
+            <option value="weekly" ${s.email_frequency==='weekly'?'selected':''}>📆 Semanal</option>
+          </select>
+        </form>
+      </td>
       <td style="font-size:12px">${formatDate(s.created_at)}</td>
       <td style="font-size:12px">${formatDate(s.last_run_at)}</td>
       <td>${s.emails_sent || 0}</td>
-      <td>
-        ${s.active ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')">Eliminar</a>` : '—'}
+      <td style="white-space:nowrap">
+        ${s.active
+          ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')">Eliminar</a>`
+          : `<a href="/admin/reactivate/${s.id}" class="btn-reactivate">Reactivar</a>`
+        }
       </td>
     </tr>
   `).join('');
@@ -316,6 +330,8 @@ app.get('/admin', adminAuth, (req, res) => {
     /* Buttons */
     .btn-delete { color: #ef4444; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #fecaca; border-radius: 6px; display: inline-block; }
     .btn-delete:hover { background: #fef2f2; }
+    .btn-reactivate { color: #13c1ac; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #d1fae5; border-radius: 6px; display: inline-block; }
+    .btn-reactivate:hover { background: #f0fdf9; }
     .btn-save { background: #13c1ac; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-save:hover { background: #0ea897; }
 
@@ -456,6 +472,20 @@ app.get('/admin', adminAuth, (req, res) => {
 app.get('/admin/delete/:id', adminAuth, (req, res) => {
   const { id } = req.params;
   deleteSubscription(id);
+  res.redirect('/admin');
+});
+
+app.get('/admin/reactivate/:id', adminAuth, (req, res) => {
+  const { id } = req.params;
+  reactivateSubscription(id);
+  res.redirect('/admin');
+});
+
+app.post('/admin/set-frequency', adminAuth, (req, res) => {
+  const { id, frequency } = req.body;
+  if (id && frequency) {
+    updateFrequency(id, frequency);
+  }
   res.redirect('/admin');
 });
 

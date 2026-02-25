@@ -119,6 +119,23 @@ function deleteSubscription(id) {
 }
 
 /**
+ * Reactiva una suscripción previamente eliminada
+ */
+function reactivateSubscription(id) {
+  const result = getDb().prepare('UPDATE subscriptions SET active = 1 WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Actualiza la frecuencia de emails de una suscripción
+ */
+function updateFrequency(id, frequency) {
+  const valid = ['immediate', 'daily', 'weekly'];
+  const freq = valid.includes(frequency) ? frequency : 'immediate';
+  getDb().prepare('UPDATE subscriptions SET email_frequency = ? WHERE id = ?').run(freq, id);
+}
+
+/**
  * Marca items como vistos para una suscripción
  */
 function markItemsSeen(subscriptionId, itemIds) {
@@ -240,6 +257,8 @@ module.exports = {
   getAllSubscriptions,
   getSubscription,
   deleteSubscription,
+  reactivateSubscription,
+  updateFrequency,
   markItemsSeen,
   filterNewItems,
   updateLastRun,
