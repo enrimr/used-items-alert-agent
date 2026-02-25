@@ -283,15 +283,17 @@ app.get('/admin', adminAuth, (req, res) => {
       <td style="font-size:12px">${formatDate(s.created_at)}</td>
       <td style="font-size:12px">${formatDate(s.last_run_at)}</td>
       <td>${s.emails_sent || 0}</td>
-      <td style="white-space:nowrap;display:flex;flex-direction:column;gap:4px;">
-        ${s.active
-          ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Eliminar esta alerta?')">Eliminar</a>`
-          : `<a href="/admin/reactivate/${s.id}" class="btn-reactivate">Reactivar</a>`
-        }
-        <a href="/admin/hard-delete/${s.id}" class="btn-hard-delete"
-           onclick="return confirm('⚠️ BORRADO DEFINITIVO: esta alerta y su historial se eliminarán permanentemente de la base de datos. ¿Continuar?')">
-          🗑️ Borrar definitivo
-        </a>
+      <td style="white-space:nowrap">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${s.active
+            ? `<a href="/admin/delete/${s.id}" class="btn-delete" onclick="return confirm('¿Desactivar esta alerta?')">Desactivar</a>`
+            : `<a href="/admin/reactivate/${s.id}" class="btn-reactivate">Reactivar</a>`
+          }
+          <a href="/admin/hard-delete/${s.id}" class="btn-hard-delete"
+             onclick="return confirm('⚠️ BORRADO DEFINITIVO: esta alerta y su historial se eliminarán permanentemente de la base de datos. ¿Continuar?')">
+            🗑️ Borrar
+          </a>
+        </div>
       </td>
     </tr>
   `).join('');
