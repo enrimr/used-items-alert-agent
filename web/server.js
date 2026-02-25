@@ -487,23 +487,24 @@ app.get('/admin', adminAuth, (req, res) => {
 
   <!-- ALERTAS (mobile cards + desktop table) -->
   <div class="section">
-    <h2>🔔 Alertas</h2>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+      <h2 style="margin-bottom:0;">🔔 Alertas</h2>
+      <!-- Toggle: solo activas — next to heading -->
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-left:4px;">
+        <div style="position:relative;width:38px;height:21px;">
+          <input type="checkbox" id="filter-active-only" onchange="applyFilters()"
+            style="opacity:0;width:0;height:0;position:absolute;" />
+          <span id="toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
+          <span id="toggle-thumb" style="position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
+        </div>
+        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Solo activas</span>
+      </label>
+    </div>
 
     <!-- Filters toolbar -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       <input id="filter-search" type="text" placeholder="🔎 Buscar por palabras, email..." oninput="applyFilters()"
         style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;" />
-
-      <!-- Toggle: solo activas -->
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
-        <div style="position:relative;width:40px;height:22px;">
-          <input type="checkbox" id="filter-active-only" onchange="applyFilters()"
-            style="opacity:0;width:0;height:0;position:absolute;" />
-          <span id="toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
-          <span id="toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
-        </div>
-        <span style="font-size:13px;color:#374151;white-space:nowrap;">Solo activas</span>
-      </label>
 
       <select id="filter-freq" onchange="applyFilters()"
         style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
@@ -697,6 +698,16 @@ app.get('/admin', adminAuth, (req, res) => {
       for (let i = 1; i <= pages; i++) el.appendChild(btn(i, i, false, i === usersPage));
       el.appendChild(btn('→', usersPage + 1, usersPage === pages, false));
     }
+
+    // Persist toggle state across redirects using localStorage
+    const savedActiveOnly = localStorage.getItem('admin_active_only') === 'true';
+    if (savedActiveOnly) document.getElementById('filter-active-only').checked = true;
+
+    const origApply = applyFilters;
+    applyFilters = function() {
+      localStorage.setItem('admin_active_only', document.getElementById('filter-active-only').checked);
+      origApply();
+    };
 
     // Init on load
     applyFilters();
