@@ -566,7 +566,7 @@ app.get('/admin', adminAuth, (req, res) => {
     <!-- Desktop table -->
     <table class="desktop-table" id="subs-table">
       <thead><tr>
-        <th>Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
+        <th style="width:90px;min-width:90px;">Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
         <th>Categoría</th><th>Frecuencia</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
       </tr></thead>
       <tbody id="subs-tbody">
