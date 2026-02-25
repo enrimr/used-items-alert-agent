@@ -459,6 +459,30 @@ app.get('/admin', adminAuth, (req, res) => {
   <div class="section">
     <h2>🔔 Alertas</h2>
 
+    <!-- Filters toolbar -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <input id="filter-search" type="text" placeholder="🔎 Buscar por palabras, email..." oninput="applyFilters()"
+        style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;" />
+      <select id="filter-status" onchange="applyFilters()"
+        style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
+        <option value="">Todas</option>
+        <option value="active">Activas</option>
+        <option value="inactive">Inactivas</option>
+      </select>
+      <select id="filter-freq" onchange="applyFilters()"
+        style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
+        <option value="">Cualquier frecuencia</option>
+        <option value="immediate">⚡ Inmediato</option>
+        <option value="daily">📅 Diario</option>
+        <option value="weekly">📆 Semanal</option>
+      </select>
+      <button onclick="resetFilters()"
+        style="padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;color:#6b7280;">
+        ✕ Limpiar
+      </button>
+      <span id="filter-count" style="font-size:12px;color:#9ca3af;white-space:nowrap;"></span>
+    </div>
+
     <!-- Mobile cards -->
     <div class="card-list">
       ${subs.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">No hay alertas todavía</p>' : subs.map(s => `
@@ -492,16 +516,103 @@ app.get('/admin', adminAuth, (req, res) => {
     </div>
 
     <!-- Desktop table -->
-    <table class="desktop-table">
+    <table class="desktop-table" id="subs-table">
       <thead><tr>
         <th>Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
         <th>Categoría</th><th>Frecuencia</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
       </tr></thead>
-      <tbody>
+      <tbody id="subs-tbody">
         ${subsRows || '<tr><td colspan="10" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
       </tbody>
     </table>
+
+    <!-- Pagination -->
+    <div id="pagination" style="display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap;"></div>
   </div>
+
+  <script>
+    const PAGE_SIZE = 25;
+    let currentPage = 1;
+    let filteredRows = [];
+
+    function getRows() {
+      return Array.from(document.querySelectorAll('#subs-tbody tr'));
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('filter-search').value.toLowerCase();
+      const status = document.getElementById('filter-status').value;
+      const freq = document.getElementById('filter-freq').value;
+
+      filteredRows = getRows().filter(row => {
+        const text = row.innerText.toLowerCase();
+        const isActive = row.classList.contains('inactive') ? 'inactive' : 'active';
+        const freqSel = row.querySelector('select[name="frequency"]');
+        const rowFreq = freqSel ? freqSel.value : '';
+
+        if (search && !text.includes(search)) return false;
+        if (status && isActive !== status) return false;
+        if (freq && rowFreq !== freq) return false;
+        return true;
+      });
+
+      currentPage = 1;
+      renderPage();
+    }
+
+    function renderPage() {
+      const allRows = getRows();
+      const total = filteredRows.length;
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+
+      allRows.forEach(r => r.style.display = 'none');
+      filteredRows.slice(start, end).forEach(r => r.style.display = '');
+
+      document.getElementById('filter-count').textContent =
+        total === allRows.length
+          ? total + ' alertas'
+          : total + ' de ' + allRows.length + ' alertas';
+
+      renderPagination(total);
+    }
+
+    function renderPagination(total) {
+      const pages = Math.ceil(total / PAGE_SIZE);
+      const el = document.getElementById('pagination');
+      el.innerHTML = '';
+      if (pages <= 1) return;
+
+      const btn = (label, page, disabled, active) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.disabled = disabled;
+        b.onclick = () => { currentPage = page; renderPage(); };
+        b.style.cssText = 'padding:5px 11px;border-radius:6px;border:1.5px solid ' +
+          (active ? '#13c1ac' : '#d1fae5') + ';background:' +
+          (active ? '#13c1ac' : '#fff') + ';color:' +
+          (active ? '#fff' : '#13c1ac') + ';font-size:13px;font-weight:600;cursor:pointer;';
+        if (disabled) b.style.opacity = '0.4';
+        return b;
+      };
+
+      el.appendChild(btn('←', currentPage - 1, currentPage === 1, false));
+      for (let i = 1; i <= pages; i++) {
+        el.appendChild(btn(i, i, false, i === currentPage));
+      }
+      el.appendChild(btn('→', currentPage + 1, currentPage === pages, false));
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-freq').value = '';
+      applyFilters();
+    }
+
+    // Init on load
+    applyFilters();
+  </script>
 </body>
 </html>`);
 });
