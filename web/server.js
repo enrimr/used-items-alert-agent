@@ -493,12 +493,18 @@ app.get('/admin', adminAuth, (req, res) => {
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       <input id="filter-search" type="text" placeholder="🔎 Buscar por palabras, email..." oninput="applyFilters()"
         style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;" />
-      <select id="filter-status" onchange="applyFilters()"
-        style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
-        <option value="">Todas</option>
-        <option value="active">Activas</option>
-        <option value="inactive">Inactivas</option>
-      </select>
+
+      <!-- Toggle: solo activas -->
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <div style="position:relative;width:40px;height:22px;">
+          <input type="checkbox" id="filter-active-only" onchange="applyFilters()"
+            style="opacity:0;width:0;height:0;position:absolute;" />
+          <span id="toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
+          <span id="toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
+        </div>
+        <span style="font-size:13px;color:#374151;white-space:nowrap;">Solo activas</span>
+      </label>
+
       <select id="filter-freq" onchange="applyFilters()"
         style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
         <option value="">Cualquier frecuencia</option>
@@ -571,17 +577,28 @@ app.get('/admin', adminAuth, (req, res) => {
 
     function applyFilters() {
       const search = document.getElementById('filter-search').value.toLowerCase();
-      const status = document.getElementById('filter-status').value;
+      const activeOnly = document.getElementById('filter-active-only').checked;
       const freq = document.getElementById('filter-freq').value;
+
+      // Update toggle visual
+      const track = document.getElementById('toggle-track');
+      const thumb = document.getElementById('toggle-thumb');
+      if (activeOnly) {
+        track.style.background = '#13c1ac';
+        thumb.style.transform = 'translateX(18px)';
+      } else {
+        track.style.background = '#e5e7eb';
+        thumb.style.transform = 'translateX(0)';
+      }
 
       filteredRows = getRows().filter(row => {
         const text = row.innerText.toLowerCase();
-        const isActive = row.classList.contains('inactive') ? 'inactive' : 'active';
+        const isActive = !row.classList.contains('inactive');
         const freqSel = row.querySelector('select[name="frequency"]');
         const rowFreq = freqSel ? freqSel.value : '';
 
         if (search && !text.includes(search)) return false;
-        if (status && isActive !== status) return false;
+        if (activeOnly && !isActive) return false;
         if (freq && rowFreq !== freq) return false;
         return true;
       });
@@ -635,7 +652,7 @@ app.get('/admin', adminAuth, (req, res) => {
 
     function resetFilters() {
       document.getElementById('filter-search').value = '';
-      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-active-only').checked = false;
       document.getElementById('filter-freq').value = '';
       applyFilters();
     }
