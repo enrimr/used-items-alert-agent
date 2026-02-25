@@ -395,23 +395,52 @@ app.get('/admin', adminAuth, (req, res) => {
     .limit-form input { width: 60px; padding: 5px 8px; border: 1px solid #d1fae5; border-radius: 6px; font-size: 13px; text-align: center; }
     .limit-form .lbl-max { font-size: 12px; color: #6b7280; }
 
-    /* Desktop breakpoint */
+    /* Table scroll wrapper (medium screens) */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+
+    /* Desktop: show table, hide cards — at 768px for users table, 1100px for alerts table */
     @media (min-width: 768px) {
       header { padding: 20px 32px; }
       header h1 { font-size: 20px; }
       .nav { padding: 12px 32px; }
-      .stats { grid-template-columns: repeat(3, auto); justify-content: start; padding: 20px 32px 8px; gap: 16px; }
-      .stat { padding: 16px 28px; }
-      .stat .num { font-size: 28px; }
+      .stats { padding: 20px 32px 8px; gap: 16px; }
+      .stat { padding: 16px 24px; }
+      .stat .num { font-size: 26px; }
       .section { padding: 8px 32px 32px; }
 
-      .card-list { display: none; }
-      .desktop-table { display: table; width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-      .desktop-table th { background: #f8fffe; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; }
-      .desktop-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-      .desktop-table tr.inactive td { opacity: 0.45; }
-      .desktop-table tr:last-child td { border-bottom: none; }
-      .desktop-table tr:hover td { background: #f0fdf9; }
+      /* Users table: 4 cols, fits at 768px */
+      .users-card-list { display: none; }
+      .users-desktop-table { display: table; }
+    }
+
+    @media (min-width: 1100px) {
+      /* Alerts table: 10 cols, needs more space */
+      .alerts-card-list { display: none; }
+      .alerts-desktop-table { display: table; }
+    }
+
+    .desktop-table {
+      display: none;
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      min-width: 600px;
+    }
+    .desktop-table th { background: #f8fffe; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+    .desktop-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .desktop-table tr.inactive td { opacity: 0.45; }
+    .desktop-table tr:last-child td { border-bottom: none; }
+    .desktop-table tr:hover td { background: #f0fdf9; }
+
+    /* Mobile card improvements */
+    @media (max-width: 479px) {
+      .stats { gap: 8px; padding: 12px; }
+      .stat { padding: 10px 12px; min-width: 80px; }
+      .stat .num { font-size: 18px; }
+      .stat .lbl { font-size: 10px; }
+      .section { padding: 8px 12px 20px; }
     }
   </style>
 </head>
@@ -455,7 +484,7 @@ app.get('/admin', adminAuth, (req, res) => {
     </div>
 
     <!-- Mobile cards -->
-    <div class="card-list">
+    <div class="card-list users-card-list">
       ${emailStats.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">Sin usuarios todavía</p>' : emailStats.map(e => `
         <div class="card">
           <div class="card-row">
@@ -484,15 +513,17 @@ app.get('/admin', adminAuth, (req, res) => {
       `).join('')}
     </div>
 
-    <!-- Desktop table -->
-    <table class="desktop-table">
-      <thead><tr>
-        <th>Email</th><th>Alertas activas / total</th><th>Emails enviados</th><th>Límite</th>
-      </tr></thead>
-      <tbody id="users-tbody">
-        ${emailRows || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#9ca3af">Sin usuarios todavía</td></tr>'}
-      </tbody>
-    </table>
+    <!-- Desktop table (with horizontal scroll wrapper) -->
+    <div class="table-scroll">
+      <table class="desktop-table users-desktop-table">
+        <thead><tr>
+          <th>Email</th><th>Alertas activas / total</th><th>Emails enviados</th><th>Límite</th>
+        </tr></thead>
+        <tbody id="users-tbody">
+          ${emailRows || '<tr><td colspan="4" style="text-align:center;padding:24px;color:#9ca3af">Sin usuarios todavía</td></tr>'}
+        </tbody>
+      </table>
+    </div>
     <div id="users-pagination" style="display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap;"></div>
   </div>
 
@@ -532,7 +563,7 @@ app.get('/admin', adminAuth, (req, res) => {
     </div>
 
     <!-- Mobile cards -->
-    <div class="card-list">
+    <div class="card-list alerts-card-list">
       ${subs.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">No hay alertas todavía</p>' : subs.map(s => `
         <div class="card" style="${s.active ? '' : 'opacity:0.5'}">
           <div class="card-row">
@@ -563,16 +594,18 @@ app.get('/admin', adminAuth, (req, res) => {
       `).join('')}
     </div>
 
-    <!-- Desktop table -->
-    <table class="desktop-table" id="subs-table">
-      <thead><tr>
-        <th style="width:90px;min-width:90px;">Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
-        <th>Categoría</th><th>Frecuencia</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
-      </tr></thead>
-      <tbody id="subs-tbody">
-        ${subsRows || '<tr><td colspan="10" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
-      </tbody>
-    </table>
+    <!-- Desktop table (with horizontal scroll wrapper) -->
+    <div class="table-scroll">
+      <table class="desktop-table alerts-desktop-table" id="subs-table">
+        <thead><tr>
+          <th style="width:90px;min-width:90px;">Estado</th><th>Búsqueda</th><th>Email</th><th>Precio</th>
+          <th>Categoría</th><th>Frecuencia</th><th>Creada</th><th>Último run</th><th>Emails</th><th>Acción</th>
+        </tr></thead>
+        <tbody id="subs-tbody">
+          ${subsRows || '<tr><td colspan="10" style="text-align:center;padding:24px;color:#9ca3af">No hay alertas todavía</td></tr>'}
+        </tbody>
+      </table>
+    </div>
 
     <!-- Pagination -->
     <div id="pagination" style="display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap;"></div>
