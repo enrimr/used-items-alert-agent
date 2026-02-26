@@ -13,7 +13,8 @@ const {
   updateLastDigest,
   cleanupOldSeenItems,
   incrementEmailsSent,
-  incrementEmailsFailed,
+  recordEmailFailure,
+  resetConsecutiveFailures,
 } = require('./db');
 
 const DIGEST_STORE = new Map(); // subscriptionId → accumulated new items
@@ -90,9 +91,14 @@ async function processSubscription(sub) {
         if (sent) {
           console.log(`  📧 [${sub.email}] "${sub.keywords}" → email enviado OK`);
           incrementEmailsSent(sub.id);
+          resetConsecutiveFailures(sub.id);
         } else {
           console.error(`  ❌ [${sub.email}] "${sub.keywords}" → email FALLÓ`);
-          incrementEmailsFailed(sub.id);
+          const autoDeactivated = recordEmailFailure(sub.id);
+          if (autoDeactivated) {
+            const threshold = parseInt(process.env.EMAIL_FAILURE_THRESHOLD || '5', 10);
+            console.warn(`  🚫 [${sub.email}] alertas auto-desactivadas tras ${threshold} fallos consecutivos`);
+          }
         }
       } else {
         // Accumulate for digest

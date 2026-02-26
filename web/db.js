@@ -69,6 +69,7 @@ function initSchema() {
     "ALTER TABLE subscriptions ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'immediate'",
     'ALTER TABLE subscriptions ADD COLUMN last_digest_at INTEGER',
     'ALTER TABLE subscriptions ADD COLUMN emails_failed INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE subscriptions ADD COLUMN consecutive_failures INTEGER NOT NULL DEFAULT 0',
   ];
   for (const sql of migrations) {
     try { getDb().exec(sql); } catch (e) { /* column already exists */ }
@@ -266,6 +267,36 @@ function incrementEmailsFailed(subscriptionId) {
 }
 
 /**
+ * Incrementa el contador de fallos consecutivos.
+ * Si supera el umbral (EMAIL_FAILURE_THRESHOLD, por defecto 5),
+ * desactiva automáticamente TODAS las alertas activas de ese email.
+ * @returns {boolean} true si se desactivó
+ */
+function recordEmailFailure(subscriptionId) {
+  const db = getDb();
+  db.prepare('UPDATE subscriptions SET emails_failed = emails_failed + 1, consecutive_failures = consecutive_failures + 1 WHERE id = ?').run(subscriptionId);
+
+  const threshold = parseInt(process.env.EMAIL_FAILURE_THRESHOLD || '5', 10);
+  const sub = db.prepare('SELECT email, consecutive_failures FROM subscriptions WHERE id = ?').get(subscriptionId);
+  if (!sub) return false;
+
+  if (sub.consecutive_failures >= threshold) {
+    // Deactivate all active subscriptions for this email
+    const result = db.prepare('UPDATE subscriptions SET active = 0 WHERE email = ? AND active = 1').run(sub.email);
+    console.warn(`⚠️ Auto-desactivadas ${result.changes} alerta(s) de ${sub.email} tras ${sub.consecutive_failures} fallos consecutivos`);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Resetea el contador de fallos consecutivos tras un envío exitoso
+ */
+function resetConsecutiveFailures(subscriptionId) {
+  getDb().prepare('UPDATE subscriptions SET consecutive_failures = 0 WHERE id = ?').run(subscriptionId);
+}
+
+/**
  * Cuenta las alertas activas de un email
  */
 function countActiveAlertsByEmail(email) {
@@ -329,6 +360,8 @@ module.exports = {
   getStats,
   incrementEmailsSent,
   incrementEmailsFailed,
+  recordEmailFailure,
+  resetConsecutiveFailures,
   countActiveAlertsByEmail,
   getAlertLimitForEmail,
   setAlertLimitForEmail,
