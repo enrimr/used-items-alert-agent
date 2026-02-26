@@ -4,6 +4,9 @@
 
 ![Wallapop Alertas Web](docs/screenshot.png)
 
+> **Panel de administración** (`/admin`)
+> ![Admin Panel](docs/admin-screenshot.png)
+
 ---
 
 ## ✨ Features
@@ -272,6 +275,52 @@ MAX_ALERTS_PER_EMAIL=10
 
 > ⚠️ Free tier on Render **spins down after 15 min of inactivity**. Upgrade to Starter ($7/mo) for always-on service.
 > ⚠️ Render may also **block outbound SMTP**. Use **Resend** to be safe.
+
+---
+
+## 🛡️ Auto-deactivation on email failures
+
+The worker tracks **consecutive email delivery failures** per subscription. If an email address accumulates N consecutive failures (default: 5), **all active alerts for that email are automatically deactivated** to prevent pointless retries.
+
+**How it works:**
+- Each time an alert email fails → `consecutive_failures` counter is incremented
+- Each time an email is sent successfully → counter is reset to 0
+- When the counter reaches the threshold → all active subscriptions for that email are deactivated
+
+**In the logs:**
+```
+❌ [user@email.com] "iphone 13" → email FALLÓ
+⚠️ Auto-desactivadas 3 alerta(s) de user@email.com tras 5 fallos consecutivos
+🚫 [user@email.com] alertas auto-desactivadas tras 5 fallos consecutivos
+```
+
+**Configure the threshold:**
+```env
+EMAIL_FAILURE_THRESHOLD=5   # default: 5 consecutive failures
+```
+
+**Reactivating alerts:** deactivated alerts can be re-enabled from the admin panel at `/admin` using the "Reactivar" button.
+
+---
+
+## 🔧 Admin Panel
+
+Access the admin dashboard at `/admin` (password-protected via `ADMIN_PASSWORD`).
+
+**Features:**
+- 📊 **8 KPI stats**: active alerts, total, users, emails sent/failed, success rate, deleted %, products processed
+- 📧 **Users & limits**: view alerts per email, set per-email alert limits, filter users with active alerts
+- 🔔 **Alerts table**: search/filter by keyword, email, frequency and active status; inline editing of keywords, price, category and frequency
+- ✏️ **Inline edit**: click any row's search term to edit keywords, price range and category
+- ♻️ **Reactivate** deleted alerts with one click
+- 🗑️ **Permanent delete** with double confirmation
+- 📄 **Pagination** on both tables (10 rows/page)
+
+```env
+ADMIN_PASSWORD=yourpassword       # required to enable admin
+MAX_ALERTS_PER_EMAIL=10           # global limit, overridable per-email in admin
+EMAIL_FAILURE_THRESHOLD=5         # auto-deactivate after N consecutive failures
+```
 
 ---
 
