@@ -564,7 +564,12 @@ app.get('/admin', adminAuth, (req, res) => {
     <!-- Mobile cards -->
     <div class="card-list alerts-card-list">
       ${subs.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">No hay alertas todavía</p>' : subs.map(s => `
-        <div class="card" style="${s.active ? '' : 'opacity:0.5'}">
+        <div class="card"
+          data-active="${s.active ? '1' : '0'}"
+          data-keywords="${escapeHtml(s.keywords.toLowerCase())}"
+          data-email="${escapeHtml(s.email.toLowerCase())}"
+          data-freq="${s.email_frequency || 'immediate'}"
+          style="${s.active ? '' : 'opacity:0.5'}">
           <div class="card-row">
             <span class="card-label">Estado</span>
             <span class="card-value"><span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Activa' : 'Inactiva'}</span></span>
@@ -656,14 +661,17 @@ app.get('/admin', adminAuth, (req, res) => {
         return true;
       });
 
-      // Filter mobile cards too
-      document.querySelectorAll('.alerts-card-list .card').forEach((card, i) => {
-        const sub = alertSubs[i];
-        if (!sub) return;
+      // Filter mobile cards using data attributes
+      document.querySelectorAll('.alerts-card-list .card').forEach(card => {
+        const cardActive = card.getAttribute('data-active') === '1';
+        const cardKeywords = card.getAttribute('data-keywords') || '';
+        const cardEmail = card.getAttribute('data-email') || '';
+        const cardFreq = card.getAttribute('data-freq') || '';
+
         let show = true;
-        if (search && !(sub.keywords + ' ' + sub.email).toLowerCase().includes(search)) show = false;
-        if (activeOnly && !sub.active) show = false;
-        if (freq && sub.freq !== freq) show = false;
+        if (search && !(cardKeywords + ' ' + cardEmail).includes(search)) show = false;
+        if (activeOnly && !cardActive) show = false;
+        if (freq && cardFreq !== freq) show = false;
         card.style.display = show ? '' : 'none';
       });
 
