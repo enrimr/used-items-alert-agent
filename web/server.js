@@ -485,7 +485,7 @@ app.get('/admin', adminAuth, (req, res) => {
     <!-- Mobile cards -->
     <div class="card-list users-card-list">
       ${emailStats.length === 0 ? '<p style="color:#9ca3af;font-size:13px;padding:8px 0">Sin usuarios todavía</p>' : emailStats.map(e => `
-        <div class="card">
+        <div class="card" data-active="${e.active_alerts}">
           <div class="card-row">
             <span class="card-label">Email</span>
             <span class="card-value" style="font-size:12px">${escapeHtml(e.email)}</span>
@@ -784,10 +784,16 @@ app.get('/admin', adminAuth, (req, res) => {
       }
       localStorage.setItem('admin_users_active', activeOnly);
 
-      // Filter rows using data-active attribute set in the HTML
+      // Filter desktop table rows using data-active attribute
       getUserRows().forEach(row => {
         const activeCount = parseInt(row.getAttribute('data-active') || '0', 10);
         row.style.display = (!activeOnly || activeCount > 0) ? '' : 'none';
+      });
+
+      // Filter mobile cards using data-active attribute
+      document.querySelectorAll('.users-card-list .card').forEach(card => {
+        const activeCount = parseInt(card.getAttribute('data-active') || '0', 10);
+        card.style.display = (!activeOnly || activeCount > 0) ? '' : 'none';
       });
 
       // Rebuild users pagination
