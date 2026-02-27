@@ -42,27 +42,57 @@ const subscribeLimiter = rateLimit({
 });
 
 // ────────────────────────────────────────────
+// Theme helper
+// ────────────────────────────────────────────
+function getThemeVars() {
+  const theme = (process.env.THEME_COLOR || 'orange').toLowerCase();
+  if (theme === 'teal' || theme === 'green') {
+    return {
+      primary: '#13c1ac',
+      primaryDark: '#0ea897',
+      bg: '#f0fdf9',
+      shadowRgb: '19,193,172',
+    };
+  }
+  // default: orange
+  return {
+    primary: '#f97316',
+    primaryDark: '#ea6a0a',
+    bg: '#fff7f0',
+    shadowRgb: '249,115,22',
+  };
+}
+
+function injectTheme(html) {
+  const t = getThemeVars();
+  // Replace CSS custom properties
+  return html
+    .replace(/--primary:\s*#[0-9a-fA-F]+;/, `--primary: ${t.primary};`)
+    .replace(/--primary-dark:\s*#[0-9a-fA-F]+;/, `--primary-dark: ${t.primaryDark};`)
+    .replace(/--bg:\s*#[0-9a-fA-F]+;/, `--bg: ${t.bg};`)
+    .replace(/rgba\(249,115,22,0\.12\)/g, `rgba(${t.shadowRgb},0.12)`)
+    .replace(/rgba\(249,115,22,0\.1\)/g, `rgba(${t.shadowRgb},0.1)`)
+    .replace(/rgba\(249,115,22,0\.15\)/g, `rgba(${t.shadowRgb},0.15)`);
+}
+
+// ────────────────────────────────────────────
 // GET / → Página principal (con AdSense si está configurado)
 // ────────────────────────────────────────────
 app.get('/', (req, res) => {
   const adsenseId = process.env.ADSENSE_CLIENT_ID;
-
-  // If no AdSense ID configured, serve static file directly (faster)
-  if (!adsenseId) {
-    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  }
-
-  // Inject AdSense script + replace client ID placeholder in ad slots
   const fs = require('fs');
   const htmlPath = path.join(__dirname, 'public', 'index.html');
   let html = fs.readFileSync(htmlPath, 'utf8');
 
-  // 1. Inject the AdSense loader script in <head>
-  const adsenseScript = `\n  <!-- Google AdSense -->\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`;
-  html = html.replace('</head>', `${adsenseScript}\n</head>`);
+  // 1. Inject theme colors
+  html = injectTheme(html);
 
-  // 2. Replace placeholder in ad slot ins tags
-  html = html.replace(/__ADSENSE_CLIENT_ID__/g, adsenseId);
+  // 2. Inject AdSense if configured
+  if (adsenseId) {
+    const adsenseScript = `\n  <!-- Google AdSense -->\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`;
+    html = html.replace('</head>', `${adsenseScript}\n</head>`);
+    html = html.replace(/__ADSENSE_CLIENT_ID__/g, adsenseId);
+  }
 
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
@@ -330,7 +360,7 @@ app.get('/admin', adminAuth, (req, res) => {
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0fdf9; color: #1a1a2e; }
 
     /* Header */
-    header { background: linear-gradient(135deg, #f97316, #ea6a0a); padding: 16px 20px; }
+    header { background: linear-gradient(135deg, ${getThemeVars().primary}, ${getThemeVars().primaryDark}); padding: 16px 20px; }
     header h1 { color: #fff; font-size: 17px; font-weight: 800; }
 
     /* Nav */

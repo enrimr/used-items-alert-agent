@@ -9,6 +9,14 @@
 
 const nodemailer = require('nodemailer');
 
+function getThemeColors() {
+  const theme = (process.env.THEME_COLOR || 'orange').toLowerCase();
+  if (theme === 'teal' || theme === 'green') {
+    return { primary: '#13c1ac', primaryDark: '#0ea897' };
+  }
+  return { primary: '#f97316', primaryDark: '#ea6a0a' };
+}
+
 /**
  * Envía email usando la API HTTP de Resend directamente (compatible con Node 16)
  */
@@ -118,7 +126,7 @@ function buildAlertHtml(items, config, subscriptionId) {
   <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#f97316,#ea6a0a);padding:24px 20px;">
+    <div style="background:linear-gradient(135deg,${getThemeColors().primary},${getThemeColors().primaryDark});padding:24px 20px;">
       <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;">
         🔔 Alertas de Segunda Mano
       </div>
@@ -217,7 +225,7 @@ async function sendConfirmationEmail(toEmail, sub) {
 <head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,sans-serif;">
   <div style="max-width:480px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,#f97316,#ea6a0a);padding:24px 20px;">
+    <div style="background:linear-gradient(135deg,${getThemeColors().primary},${getThemeColors().primaryDark});padding:24px 20px;">
       <div style="font-size:22px;font-weight:800;color:#fff;">✅ Alerta creada</div>
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Te avisaremos cuando aparezcan nuevos productos</div>
     </div>
