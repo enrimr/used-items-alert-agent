@@ -330,7 +330,7 @@ app.get('/admin', adminAuth, (req, res) => {
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0fdf9; color: #1a1a2e; }
 
     /* Header */
-    header { background: linear-gradient(135deg, #13c1ac, #0ea897); padding: 16px 20px; }
+    header { background: linear-gradient(135deg, #f97316, #ea6a0a); padding: 16px 20px; }
     header h1 { color: #fff; font-size: 17px; font-weight: 800; }
 
     /* Nav */
