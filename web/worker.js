@@ -15,9 +15,10 @@ const {
   incrementEmailsSent,
   recordEmailFailure,
   resetConsecutiveFailures,
+  addDigestItems,
+  getDigestItems,
+  clearDigestItems,
 } = require('./db');
-
-const DIGEST_STORE = new Map(); // subscriptionId → accumulated new items
 
 /**
  * Checks if a digest subscription should send email now
@@ -101,10 +102,10 @@ async function processSubscription(sub) {
           }
         }
       } else {
-        // Accumulate for digest
-        const existing = DIGEST_STORE.get(sub.id) || [];
-        DIGEST_STORE.set(sub.id, [...existing, ...newItems]);
-        console.log(`  📥 [${sub.email}] "${sub.keywords}" → ${newItems.length} guardados para resumen ${freq} (total acumulado: ${existing.length + newItems.length})`);
+        // Accumulate for digest in SQLite (persists across restarts)
+        addDigestItems(sub.id, newItems);
+        const total = getDigestItems(sub.id).length;
+        console.log(`  📥 [${sub.email}] "${sub.keywords}" → ${newItems.length} guardados para resumen ${freq} (total acumulado: ${total})`);
       }
     } else {
       console.log(`  ✓ [${sub.email}] "${sub.keywords}" → sin novedades`);
@@ -112,7 +113,7 @@ async function processSubscription(sub) {
 
     // For digest subscriptions: send if enough time has passed
     if (freq !== 'immediate' && shouldSendDigest(sub)) {
-      const accumulated = DIGEST_STORE.get(sub.id) || [];
+      const accumulated = getDigestItems(sub.id);
       if (accumulated.length > 0) {
         const label = freq === 'daily' ? 'diario' : 'semanal';
         console.log(`  📬 [${sub.email}] "${sub.keywords}" → enviando resumen ${label} (${accumulated.length} productos)...`);
@@ -120,7 +121,7 @@ async function processSubscription(sub) {
         if (sent) {
           console.log(`  📧 [${sub.email}] "${sub.keywords}" → resumen ${label} enviado OK`);
           incrementEmailsSent(sub.id);
-          DIGEST_STORE.delete(sub.id);
+          clearDigestItems(sub.id);
           updateLastDigest(sub.id);
         }
       } else {

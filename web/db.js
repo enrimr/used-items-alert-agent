@@ -61,6 +61,16 @@ function initSchema() {
       email      TEXT PRIMARY KEY,
       max_alerts INTEGER NOT NULL DEFAULT 10
     );
+
+    CREATE TABLE IF NOT EXISTS digest_store (
+      subscription_id TEXT NOT NULL,
+      item_id         TEXT NOT NULL,
+      item_json       TEXT NOT NULL,
+      added_at        INTEGER NOT NULL,
+      PRIMARY KEY (subscription_id, item_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_digest_sub ON digest_store(subscription_id);
   `);
 
   // Migrations for existing DBs
@@ -342,6 +352,62 @@ function getEmailStats() {
   `).all(parseInt(process.env.MAX_ALERTS_PER_EMAIL || '10', 10));
 }
 
+// ── Digest store (persistent accumulation for daily/weekly emails) ────────────
+
+const DIGEST_MAX_ITEMS = 100; // max items per subscription in digest store
+
+/**
+ * Adds new items to the digest store for a subscription (upsert, max 100)
+ */
+function addDigestItems(subscriptionId, items) {
+  const db = getDb();
+  const now = Date.now();
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO digest_store (subscription_id, item_id, item_json, added_at)
+    VALUES (?, ?, ?, ?)
+  `);
+  const insertMany = db.transaction((itemList) => {
+    for (const item of itemList) {
+      insert.run(subscriptionId, item.id, JSON.stringify(item), now);
+    }
+  });
+  insertMany(items);
+
+  // Trim to keep only the most recent DIGEST_MAX_ITEMS
+  db.prepare(`
+    DELETE FROM digest_store WHERE subscription_id = ? AND item_id NOT IN (
+      SELECT item_id FROM digest_store WHERE subscription_id = ?
+      ORDER BY added_at DESC LIMIT ?
+    )
+  `).run(subscriptionId, subscriptionId, DIGEST_MAX_ITEMS);
+}
+
+/**
+ * Gets all accumulated items for a subscription
+ */
+function getDigestItems(subscriptionId) {
+  return getDb()
+    .prepare('SELECT item_json FROM digest_store WHERE subscription_id = ? ORDER BY added_at ASC')
+    .all(subscriptionId)
+    .map(r => JSON.parse(r.item_json));
+}
+
+/**
+ * Removes all digest items for a subscription (after sending)
+ */
+function clearDigestItems(subscriptionId) {
+  getDb().prepare('DELETE FROM digest_store WHERE subscription_id = ?').run(subscriptionId);
+}
+
+/**
+ * Returns the count of accumulated digest items for a subscription
+ */
+function getDigestCount(subscriptionId) {
+  return getDb()
+    .prepare('SELECT COUNT(*) as count FROM digest_store WHERE subscription_id = ?')
+    .get(subscriptionId).count;
+}
+
 module.exports = {
   createSubscription,
   getActiveSubscriptions,
@@ -366,4 +432,8 @@ module.exports = {
   getAlertLimitForEmail,
   setAlertLimitForEmail,
   getEmailStats,
+  addDigestItems,
+  getDigestItems,
+  clearDigestItems,
+  getDigestCount,
 };
