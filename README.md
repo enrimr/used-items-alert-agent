@@ -1,8 +1,8 @@
-# 🔍 Wallapop Alert Agent
+# 🔍 Userd Items Alert Agent
 
-> Monitor Wallapop Spain for new listings and get notified instantly — via CLI, email, or a public web interface.
+> Monitor a Spanish Used Items website for new listings and get notified instantly — via CLI, email, or a public web interface.
 
-![Wallapop Alertas Web](docs/screenshot.png)
+![Used Items Alerts Web](docs/screenshot.png)
 
 > **Panel de administración** (`/admin`)
 > ![Admin Panel](docs/admin-screenshot.png)
@@ -26,8 +26,8 @@
 
 ```bash
 # Clone and install
-git clone https://github.com/enrimr/wallapop-alert-agent.git
-cd wallapop-alert-agent
+git clone https://github.com/enrimr/used-items-alert-agent.git
+cd used-items-alert-agent
 npm install
 
 # Configure
@@ -39,7 +39,7 @@ cp .env.example .env
 
 ## 🖥️ Mode 1 — CLI (personal use)
 
-Monitor Wallapop for your own searches from the terminal.
+Monitor the Spanish Used Items website for your own searches from the terminal.
 
 ```bash
 npm start           # Continuous monitoring loop
@@ -60,7 +60,7 @@ POLL_INTERVAL_SECONDS=90
 
 ## 🌐 Mode 2 — Web Server (public service)
 
-Run a web interface where anyone can create their own Wallapop alerts.
+Run a web interface where anyone can create their own Used Items alerts.
 
 ```bash
 npm run web         # Start web server + background worker
@@ -70,7 +70,7 @@ npm run web:only    # Start web server only (no worker)
 **How it works:**
 1. User fills in the form (keywords, price, category, email)
 2. Alert is saved to SQLite — no account needed
-3. Background worker polls Wallapop every 2 minutes for each subscription
+3. Background worker polls Used Items website every 2 minutes for each subscription
 4. New products → HTML email with unsubscribe link
 5. User clicks "❌ Eliminar esta alerta" → alert deleted
 
@@ -152,7 +152,7 @@ WORKER_INTERVAL_SECONDS=120
 ## 🏗️ Project Structure
 
 ```
-wallapop-alert-agent/
+used-items-alert-agent/
 │
 ├── index.js              # CLI entry point
 ├── server.js             # Web server entry point
@@ -326,7 +326,7 @@ EMAIL_FAILURE_THRESHOLD=5         # auto-deactivate after N consecutive failures
 
 ## ⚠️ Notes
 
-- Uses Puppeteer headless browser to bypass Wallapop's CloudFront protection
+- Uses Puppeteer headless browser to bypass Site's CloudFront protection
 - Recommended minimum interval: 60-90 seconds to avoid overloading the server
 - The web worker polls all active subscriptions sequentially with a 2s delay between each
 - Seen items are stored per-subscription in SQLite (web) or JSON file (CLI)
