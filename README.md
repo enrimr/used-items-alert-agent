@@ -326,10 +326,21 @@ EMAIL_FAILURE_THRESHOLD=5         # auto-deactivate after N consecutive failures
 
 ## ⚠️ Notes
 
-- Uses Puppeteer headless browser to bypass Site's CloudFront protection
+- Uses Puppeteer headless browser to bypass Wallapop's CloudFront protection
 - Recommended minimum interval: 60-90 seconds to avoid overloading the server
-- The web worker polls all active subscriptions sequentially with a 2s delay between each
+- The web worker polls subscriptions in parallel (default: 3 concurrent) — configurable via `WORKER_CONCURRENCY`
+- Digest items (daily/weekly) are persisted in SQLite and survive server restarts
 - Seen items are stored per-subscription in SQLite (web) or JSON file (CLI)
+
+### Worker concurrency
+
+By default the worker processes up to 3 subscriptions in parallel, each using its own browser context (page). Increase this for more users, decrease it to save memory:
+
+```env
+WORKER_CONCURRENCY=3   # default: 3 parallel subscriptions
+```
+
+Each concurrent worker shares the same Chromium browser instance but uses separate pages to avoid state collisions.
 
 ---
 

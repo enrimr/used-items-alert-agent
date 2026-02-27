@@ -39,6 +39,7 @@ function shouldSendDigest(sub) {
 
 const CATEGORIES = require('../src/config').CATEGORIES;
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
+const CONCURRENCY = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '3', 10));
 
 let browser = null;
 let cycleCount = 0;
@@ -56,6 +57,31 @@ async function closeBrowser() {
     try { await browser.close(); } catch (e) {}
     browser = null;
   }
+}
+
+/**
+ * Runs an async task with a semaphore to limit concurrency.
+ * Returns a runner that accepts an array of tasks and resolves when all done.
+ */
+async function runWithConcurrency(items, fn, concurrency) {
+  const results = [];
+  let i = 0;
+
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      try {
+        results[idx] = await fn(items[idx]);
+      } catch (err) {
+        results[idx] = null;
+        console.error(`[Worker] Error en suscripción ${idx}:`, err.message);
+      }
+    }
+  }
+
+  // Spawn `concurrency` workers in parallel
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
 }
 
 /**
@@ -139,6 +165,7 @@ async function processSubscription(sub) {
 
 /**
  * Ejecuta un ciclo completo para todas las suscripciones activas
+ * Procesa CONCURRENCY suscripciones en paralelo
  */
 async function runCycle() {
   cycleCount++;
@@ -149,18 +176,18 @@ async function runCycle() {
     return;
   }
 
-  console.log(`\n[Worker #${cycleCount}] Procesando ${subscriptions.length} suscripción(es)...`);
+  console.log(`\n[Worker #${cycleCount}] Procesando ${subscriptions.length} suscripción(es) [concurrencia: ${CONCURRENCY}]...`);
 
   // Reiniciar navegador cada 10 ciclos
   if (cycleCount % 10 === 1) {
     await closeBrowser();
   }
 
-  for (const sub of subscriptions) {
-    await processSubscription(sub);
-    // Pequeña pausa entre suscripciones para no sobrecargar
-    await new Promise(r => setTimeout(r, 2000));
-  }
+  const start = Date.now();
+  await runWithConcurrency(subscriptions, processSubscription, CONCURRENCY);
+  const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+
+  console.log(`[Worker #${cycleCount}] Ciclo completado en ${elapsed}s`);
 
   // Limpiar items viejos cada 50 ciclos
   if (cycleCount % 50 === 0) {
