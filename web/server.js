@@ -457,7 +457,7 @@ app.get('/admin', adminAuth, (req, res) => {
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       min-width: 600px;
     }
-    .desktop-table th { background: #f8fffe; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+    .desktop-table th { background: rgba(${getThemeVars().shadowRgb},0.06); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(${getThemeVars().shadowRgb},0.15); white-space: nowrap; }
     .desktop-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     .desktop-table tr.inactive td { opacity: 0.45; }
     .desktop-table tr:last-child td { border-bottom: none; }
