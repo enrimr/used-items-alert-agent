@@ -332,7 +332,7 @@ app.get('/admin', adminAuth, (req, res) => {
     <tr data-active="${e.active_alerts}">
       <td style="font-size:12px">${escapeHtml(e.email)}</td>
       <td>
-        <span style="font-weight:700;color:#13c1ac">${e.active_alerts}</span>
+        <span style="font-weight:700;color:${getThemeVars().primary}">${e.active_alerts}</span>
         <span style="color:#9ca3af;font-size:11px"> activas de ${e.total_alerts} creadas</span>
       </td>
       <td>${e.total_emails_sent || 0}</td>
@@ -357,7 +357,7 @@ app.get('/admin', adminAuth, (req, res) => {
   <title>Admin — Wallapop Alertas</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0fdf9; color: #1a1a2e; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: rgba(${getThemeVars().shadowRgb},0.04); color: #1a1a2e; }
 
     /* Header */
     header { background: linear-gradient(135deg, ${getThemeVars().primary}, ${getThemeVars().primaryDark}); padding: 16px 20px; }
@@ -461,7 +461,7 @@ app.get('/admin', adminAuth, (req, res) => {
     .desktop-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     .desktop-table tr.inactive td { opacity: 0.45; }
     .desktop-table tr:last-child td { border-bottom: none; }
-    .desktop-table tr:hover td { background: #f0fdf9; }
+    .desktop-table tr:hover td { background: rgba(${getThemeVars().shadowRgb},0.04); }
 
     /* Mobile card improvements */
     @media (max-width: 479px) {
@@ -671,7 +671,7 @@ app.get('/admin', adminAuth, (req, res) => {
       const track = document.getElementById('toggle-track');
       const thumb = document.getElementById('toggle-thumb');
       if (activeOnly) {
-        track.style.background = '#13c1ac';
+        track.style.background = '${getThemeVars().primary}';
         thumb.style.transform = 'translateX(18px)';
       } else {
         track.style.background = '#e5e7eb';
@@ -806,7 +806,7 @@ app.get('/admin', adminAuth, (req, res) => {
       const track = document.getElementById('users-toggle-track');
       const thumb = document.getElementById('users-toggle-thumb');
       if (activeOnly) {
-        track.style.background = '#13c1ac';
+        track.style.background = '${getThemeVars().primary}';
         thumb.style.transform = 'translateX(18px)';
       } else {
         track.style.background = '#e5e7eb';
