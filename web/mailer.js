@@ -113,7 +113,7 @@ function buildAlertHtml(items, config, subscriptionId) {
   }).join('');
 
   const searchBadges = [
-    `<span style="background:#e8fdf8;color:#13c1ac;padding:3px 10px;border-radius:20px;font-size:12px;margin-right:6px;">🔎 ${config.keywords}</span>`,
+    `<span style="background:rgba(${getThemeColors().primary.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.08);color:${getThemeColors().primary};padding:3px 10px;border-radius:20px;font-size:12px;margin-right:6px;">🔎 ${config.keywords}</span>`,
     config.minPrice != null ? `<span style="background:#fff8e1;color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:12px;margin-right:6px;">desde ${config.minPrice}€</span>` : '',
     config.maxPrice != null ? `<span style="background:#fff8e1;color:#f59e0b;padding:3px 10px;border-radius:20px;font-size:12px;margin-right:6px;">hasta ${config.maxPrice}€</span>` : '',
     config.categoryId ? `<span style="background:#f3f0ff;color:#7c3aed;padding:3px 10px;border-radius:20px;font-size:12px;">🏷️ ${config.categoryName}</span>` : '',

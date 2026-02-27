@@ -575,10 +575,10 @@ app.get('/admin', adminAuth, (req, res) => {
     <!-- Filters toolbar -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
       <input id="filter-search" type="text" placeholder="🔎 Buscar por palabras, email..." oninput="applyFilters()"
-        style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;" />
+        style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid rgba(${getThemeVars().shadowRgb},0.3);border-radius:8px;font-size:13px;" />
 
       <select id="filter-freq" onchange="applyFilters()"
-        style="padding:8px 10px;border:1.5px solid #d1fae5;border-radius:8px;font-size:13px;background:#fff;">
+        style="padding:8px 10px;border:1.5px solid rgba(${getThemeVars().shadowRgb},0.3);border-radius:8px;font-size:13px;background:#fff;">
         <option value="">Cualquier frecuencia</option>
         <option value="immediate">⚡ Inmediato</option>
         <option value="daily">📅 Diario</option>
