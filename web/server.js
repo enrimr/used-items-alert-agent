@@ -365,7 +365,7 @@ app.get('/admin', adminAuth, (req, res) => {
 
     /* Nav */
     .nav { display: flex; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
-    .nav a { color: #13c1ac; font-size: 13px; text-decoration: none; font-weight: 600; }
+    .nav a { color: ${getThemeVars().primary}; font-size: 13px; text-decoration: none; font-weight: 600; }
     .nav a:hover { text-decoration: underline; }
 
     /* Stats — horizontal scroll on mobile, single row on desktop */
@@ -387,7 +387,7 @@ app.get('/admin', adminAuth, (req, res) => {
       flex: 0 0 auto;
       min-width: 100px;
     }
-    .stat .num { font-size: 22px; font-weight: 800; color: #13c1ac; white-space: nowrap; }
+    .stat .num { font-size: 22px; font-weight: 800; color: ${getThemeVars().primary}; white-space: nowrap; }
     .stat .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; white-space: nowrap; }
 
     /* Sections */
@@ -413,12 +413,12 @@ app.get('/admin', adminAuth, (req, res) => {
     /* Buttons */
     .btn-delete { color: #ef4444; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #fecaca; border-radius: 6px; display: inline-block; }
     .btn-delete:hover { background: #fef2f2; }
-    .btn-reactivate { color: #13c1ac; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #d1fae5; border-radius: 6px; display: inline-block; }
-    .btn-reactivate:hover { background: #f0fdf9; }
+    .btn-reactivate { color: ${getThemeVars().primary}; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid rgba(${getThemeVars().shadowRgb},0.3); border-radius: 6px; display: inline-block; }
+    .btn-reactivate:hover { background: rgba(${getThemeVars().shadowRgb},0.05); }
     .btn-hard-delete { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; display: inline-block; margin-top: 2px; }
     .btn-hard-delete:hover { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
-    .btn-save { background: #13c1ac; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .btn-save:hover { background: #0ea897; }
+    .btn-save { background: ${getThemeVars().primary}; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: ${getThemeVars().primaryDark}; }
 
     /* Limit form */
     .limit-form { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
@@ -486,7 +486,7 @@ app.get('/admin', adminAuth, (req, res) => {
     <div class="stat"><div class="num">${stats.totalUsers}</div><div class="lbl">Usuarios</div></div>
     <div class="stat"><div class="num">${stats.totalEmailsSent}</div><div class="lbl">Emails enviados</div></div>
     <div class="stat" style="${stats.totalEmailsFailed > 0 ? 'border:2px solid #fecaca' : ''}">
-      <div class="num" style="color:${stats.totalEmailsFailed > 0 ? '#ef4444' : '#13c1ac'}">${stats.totalEmailsFailed}</div>
+      <div class="num" style="color:${stats.totalEmailsFailed > 0 ? '#ef4444' : getThemeVars().primary}">${stats.totalEmailsFailed}</div>
       <div class="lbl">Emails fallidos</div>
     </div>
     <div class="stat">
