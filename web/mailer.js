@@ -98,14 +98,14 @@ function buildAlertHtml(items, config, subscriptionId) {
         <td style="padding:16px 20px;border-bottom:1px solid #f0f0f0;vertical-align:top;">
           ${img}
           <div style="font-size:16px;font-weight:700;margin-bottom:4px;">
-            <a href="${item.url}" style="color:#13c1ac;text-decoration:none;">${item.title}</a>
+            <a href="${item.url}" style="color:${getThemeColors().primary};text-decoration:none;">${item.title}</a>
           </div>
-          <div style="font-size:22px;font-weight:700;color:#e95f26;margin-bottom:6px;">${price}</div>
+          <div style="font-size:22px;font-weight:700;color:${getThemeColors().primary};margin-bottom:6px;">${price}</div>
           <div style="font-size:13px;color:#888;margin-bottom:6px;">📍 ${item.location}</div>
           ${desc ? `<div style="font-size:13px;color:#999;margin-bottom:10px;">${desc}</div>` : ''}
           <a href="${item.url}"
-             style="display:inline-block;background:#13c1ac;color:#fff;padding:9px 18px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;">
-            Ver en Wallapop →
+             style="display:inline-block;background:${getThemeColors().primary};color:#fff;padding:9px 18px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;">
+            Ver →
           </a>
         </td>
       </tr>
