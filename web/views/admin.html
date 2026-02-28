@@ -86,6 +86,10 @@
     </div>
     <div class="stat"><div class="num">{{stats.totalDeleted}}</div><div class="lbl">Eliminadas ({{stats.deletedPct}}%)</div></div>
     <div class="stat"><div class="num">{{stats.totalSeen}}</div><div class="lbl">Productos vistos</div></div>
+    <div class="stat" style="{{stats.pendingBorder}}">
+      <div class="num" style="color:{{stats.pendingColor}}">{{stats.totalPending}}</div>
+      <div class="lbl">⏳ Pendientes verificar</div>
+    </div>
   </div>
 
   <!-- USUARIOS -->

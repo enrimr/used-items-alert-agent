@@ -280,7 +280,10 @@ function getStats() {
       COUNT(DISTINCT email) as totalUsers
     FROM subscriptions
   `).get();
-  const totalSeen = db.prepare('SELECT COUNT(*) as count FROM seen_items').get().count;
+  const totalSeen    = db.prepare('SELECT COUNT(*) as count FROM seen_items').get().count;
+  const totalPending = db.prepare(
+    'SELECT COUNT(*) as count FROM subscriptions WHERE verified = 0 AND verification_token IS NOT NULL'
+  ).get().count;
 
   const sent = row.totalEmailsSent || 0;
   const failed = row.totalEmailsFailed || 0;
@@ -289,15 +292,16 @@ function getStats() {
   const deletedPct = row.totalAll > 0 ? Math.round((row.totalDeleted / row.totalAll) * 100) : 0;
 
   return {
-    totalActive: row.totalActive || 0,
-    totalAll: row.totalAll || 0,
-    totalDeleted: row.totalDeleted || 0,
-    totalUsers: row.totalUsers || 0,
-    totalEmailsSent: sent,
+    totalActive:    row.totalActive || 0,
+    totalAll:       row.totalAll || 0,
+    totalDeleted:   row.totalDeleted || 0,
+    totalUsers:     row.totalUsers || 0,
+    totalEmailsSent:   sent,
     totalEmailsFailed: failed,
     successRate,
     deletedPct,
     totalSeen,
+    totalPending,
   };
 }
 

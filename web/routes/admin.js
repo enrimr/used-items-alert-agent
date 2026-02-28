@@ -212,6 +212,9 @@ router.get('/', (req, res) => {
     'stats.totalDeleted':      stats.totalDeleted,
     'stats.deletedPct':        stats.deletedPct,
     'stats.totalSeen':         stats.totalSeen,
+    'stats.totalPending':      stats.totalPending,
+    'stats.pendingBorder':     stats.totalPending > 0 ? 'border:2px solid #fef9c3' : '',
+    'stats.pendingColor':      stats.totalPending > 0 ? '#92400e' : '#6b7280',
     'stats.failedBorder':      stats.totalEmailsFailed > 0 ? 'border:2px solid #fecaca' : '',
     'stats.failedColor':       stats.totalEmailsFailed > 0 ? '#ef4444' : t.primary,
     'stats.successRateColor':  stats.successRate >= 90 ? '#13c1ac'
