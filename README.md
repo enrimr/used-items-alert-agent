@@ -299,6 +299,26 @@ The worker tracks **consecutive email delivery failures** per subscription. If a
 EMAIL_FAILURE_THRESHOLD=5   # default: 5 consecutive failures
 ```
 
+---
+
+## 🎨 Themes
+
+Choose a color theme via `THEME_COLOR` in `.env` or Railway variables:
+
+| Value | Color | Preview |
+|-------|-------|---------|
+| `orange` | Warm orange *(default)* | `#f97316` |
+| `teal` | Teal/green | `#13c1ac` |
+| `purple` | Violet/indigo | `#7c3aed` |
+| `blue` | Sky blue | `#2563eb` |
+| `neutral` | Slate gray | `#475569` |
+
+```env
+THEME_COLOR=orange   # or: teal | purple | blue | neutral
+```
+
+The theme applies to the web form, admin panel, and email templates.
+
 **Reactivating alerts:** deactivated alerts can be re-enabled from the admin panel at `/admin` using the "Reactivar" button.
 
 ---
