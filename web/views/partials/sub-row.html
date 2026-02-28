@@ -1,0 +1,53 @@
+<tr class="{{rowClass}}">
+  <td>
+    <span class="badge {{badgeClass}}">{{statusLabel}}</span>
+    {{verifiedBadge}}
+  </td>
+  <td>
+    <details>
+      <summary style="cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;gap:6px;">
+        {{keywords}}
+        <span style="font-size:10px;color:{{primary}};font-weight:400;">✏️ editar</span>
+      </summary>
+      <form method="POST" action="/admin/edit/{{id}}"
+        style="margin-top:8px;padding:10px;background:#f8fffe;border-radius:8px;border:1px solid #d1fae5;display:grid;gap:6px;">
+        <input name="keywords" value="{{keywords}}" required
+          style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;width:100%;" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <input name="min_price" type="number" value="{{minPrice}}" placeholder="Min €" min="0"
+            style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;" />
+          <input name="max_price" type="number" value="{{maxPrice}}" placeholder="Max €" min="0"
+            style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;" />
+        </div>
+        <select name="category_id" style="padding:5px 8px;border:1px solid #d1fae5;border-radius:5px;font-size:13px;">
+          <option value="">— Todas las categorías —</option>
+          {{categoryOptions}}
+        </select>
+        <button type="submit" class="btn-save" style="width:100%;">Guardar cambios</button>
+      </form>
+    </details>
+  </td>
+  <td style="font-size:12px">{{email}}</td>
+  <td>{{priceRange}}</td>
+  <td>{{categoryName}}</td>
+  <td>
+    <form method="POST" action="/admin/set-frequency" style="display:flex;gap:4px;align-items:center;">
+      <input type="hidden" name="id" value="{{id}}" />
+      <select name="frequency" onchange="this.form.submit()"
+        style="padding:3px 6px;border:1px solid rgba({{shadowRgb}},0.3);border-radius:5px;font-size:11px;background:#fff;cursor:pointer;">
+        <option value="immediate" {{selImmediate}}>⚡ Inmediato</option>
+        <option value="daily" {{selDaily}}>📅 Diario</option>
+        <option value="weekly" {{selWeekly}}>📆 Semanal</option>
+      </select>
+    </form>
+  </td>
+  <td style="font-size:12px">{{createdAt}}</td>
+  <td style="font-size:12px">{{lastRunAt}}</td>
+  <td>{{emailsSent}}</td>
+  <td style="white-space:nowrap">
+    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+      {{actionButton}}
+      {{hardDeleteBtn}}
+    </div>
+  </td>
+</tr>

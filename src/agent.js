@@ -12,7 +12,7 @@ const {
   sendDesktopNotification,
   printCountdown,
 } = require('./notifier');
-const { sendEmailNotification, verifyEmailConfig } = require('./emailer');
+const { sendAlertEmail, verifyEmailConfig } = require('./mailer');
 
 class WallapopAgent {
   constructor(config) {
@@ -75,9 +75,9 @@ class WallapopAgent {
         sendDesktopNotification(newItems, this.config);
       }
 
-      // Notificación por email
+      // Notificación por email (modo CLI: sin subscriptionId → sin link de cancelación)
       if (this.config.emailEnabled && newItems.length > 0) {
-        const sent = await sendEmailNotification(newItems, this.config);
+        const sent = await sendAlertEmail(newItems, this.config, process.env.EMAIL_TO, null);
         if (sent) {
           printStatus(`📧 Email enviado a ${process.env.EMAIL_TO}`, 'success');
         }

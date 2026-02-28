@@ -1,0 +1,31 @@
+<div class="card"
+  data-active="{{dataActive}}"
+  data-keywords="{{keywordsLower}}"
+  data-email="{{emailLower}}"
+  data-freq="{{frequency}}"
+  style="{{cardOpacity}}">
+  <div class="card-row">
+    <span class="card-label">Estado</span>
+    <span class="card-value">
+      <span class="badge {{badgeClass}}">{{statusLabel}}</span>
+      {{verifiedBadge}}
+    </span>
+  </div>
+  <div class="card-row">
+    <span class="card-label">Búsqueda</span>
+    <span class="card-value"><strong>{{keywords}}</strong></span>
+  </div>
+  <div class="card-row">
+    <span class="card-label">Email</span>
+    <span class="card-value" style="font-size:12px">{{email}}</span>
+  </div>
+  <div class="card-row">
+    <span class="card-label">Precio</span>
+    <span class="card-value">{{priceRange}}</span>
+  </div>
+  <div class="card-row">
+    <span class="card-label">Emails</span>
+    <span class="card-value">{{emailsSent}}</span>
+  </div>
+  {{deleteButton}}
+</div>

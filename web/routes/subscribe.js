@@ -14,17 +14,20 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
-const { injectTheme } = require('../theme');
+const { injectTheme, getThemeVars } = require('../theme');
 const { escapeHtml, renderSimplePage } = require('../helpers');
+const { renderTemplate } = require('../views/render');
 const {
   createSubscription,
   getSubscription,
+  verifySubscription,
   deleteSubscription,
   countActiveAlertsByEmail,
   getAlertLimitForEmail,
 } = require('../db');
-const { sendConfirmationEmail } = require('../mailer');
-const { CATEGORIES } = require('../../src/config');
+const { sendConfirmationEmail, sendVerificationEmail } = require('../../src/mailer');
+const { CATEGORIES } = require('../../src/categories');
+const { v4: uuidv4 } = require('uuid');
 
 // Rate limiting: max 5 subscribes per IP per 15 min
 const subscribeLimiter = rateLimit({
@@ -59,7 +62,10 @@ router.get('/', (req, res) => {
 // POST /subscribe → Create new alert
 // ────────────────────────────────────────────
 router.post('/subscribe', subscribeLimiter, async (req, res) => {
-  const { email, keywords, min_price, max_price, category_id, email_frequency } = req.body;
+  const {
+    email, keywords, min_price, max_price,
+    category_id, email_frequency, shipping_only,
+  } = req.body;
 
   if (!email || !keywords) {
     return res.status(400).json({ error: 'Email y palabras clave son requeridos' });
@@ -95,31 +101,81 @@ router.post('/subscribe', subscribeLimiter, async (req, res) => {
     });
   }
 
+  // ¿Requiere verificación de email?
+  const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+  const verificationToken    = requireVerification ? uuidv4() : null;
+  const shippingOnly         = shipping_only === 'true' || shipping_only === true || shipping_only === '1';
+
   try {
     const id = createSubscription({
       email,
-      keywords: keywords.trim(),
+      keywords:          keywords.trim(),
       minPrice,
       maxPrice,
-      categoryId: category_id || '',
-      frequency: email_frequency || 'immediate',
+      categoryId:        category_id || '',
+      frequency:         email_frequency || 'immediate',
+      shippingOnly,
+      verified:          !requireVerification,   // verificado automáticamente si no se exige
+      verificationToken,
     });
 
     const sub = getSubscription(id);
 
-    sendConfirmationEmail(email, sub).catch(err => {
-      console.error('Error enviando confirmación:', err.message);
-    });
+    if (requireVerification) {
+      // Enviar email de verificación en lugar de confirmación
+      sendVerificationEmail(email, sub).catch(err => {
+        console.error('Error enviando verificación:', err.message);
+      });
+    } else {
+      sendConfirmationEmail(email, sub).catch(err => {
+        console.error('Error enviando confirmación:', err.message);
+      });
+    }
 
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
-      return res.json({ success: true, id });
+      return res.json({
+        success: true,
+        id,
+        pendingVerification: requireVerification,
+      });
     }
-    return res.redirect(`/success?keywords=${encodeURIComponent(keywords)}&email=${encodeURIComponent(email)}`);
+
+    const successQuery = requireVerification
+      ? `?keywords=${encodeURIComponent(keywords)}&email=${encodeURIComponent(email)}&verify=1`
+      : `?keywords=${encodeURIComponent(keywords)}&email=${encodeURIComponent(email)}`;
+    return res.redirect(`/success${successQuery}`);
 
   } catch (err) {
     console.error('Error creando suscripción:', err.message);
     return res.status(500).json({ error: 'Error interno. Inténtalo de nuevo.' });
   }
+});
+
+// ────────────────────────────────────────────
+// GET /verify/:token → Verify email and activate alert
+// ────────────────────────────────────────────
+router.get('/verify/:token', (req, res) => {
+  const { token } = req.params;
+  const sub = verifySubscription(token);
+
+  if (!sub) {
+    return res.status(404).send(renderSimplePage(
+      '❌ Enlace no válido',
+      'Este enlace de verificación no existe o ya fue utilizado.',
+      '#f87171'
+    ));
+  }
+
+  const t = getThemeVars();
+  return res.send(renderSimplePage(
+    '✅ ¡Email verificado!',
+    `Tu alerta para "<strong>${escapeHtml(sub.keywords)}</strong>" está activa.<br><br>
+     Te avisaremos en <strong>${escapeHtml(sub.email)}</strong> cuando aparezcan nuevos productos.<br><br>
+     <a href="/" style="display:inline-block;margin-top:8px;background:${t.primary};color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;">
+       Crear otra alerta
+     </a>`,
+    t.primary
+  ));
 });
 
 // ────────────────────────────────────────────
@@ -159,16 +215,12 @@ router.get('/unsubscribe/:id', (req, res) => {
 // ────────────────────────────────────────────
 router.get('/success', (req, res) => {
   const { keywords = '', email = '' } = req.query;
-  const { getThemeVars } = require('../theme');
   const t = getThemeVars();
-  res.send(renderSimplePage(
-    '✅ ¡Alerta creada!',
-    `Recibirás un email en <strong>${escapeHtml(email)}</strong> cuando aparezcan nuevos productos para "<strong>${escapeHtml(keywords)}</strong>".<br><br>
-     <a href="/" style="display:inline-block;margin-top:8px;background:${t.primary};color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;">
-       Crear otra alerta
-     </a>`,
-    t.primary
-  ));
+  res.send(renderTemplate('success', {
+    primary:  t.primary,
+    email:    escapeHtml(email),
+    keywords: escapeHtml(keywords),
+  }));
 });
 
 // ────────────────────────────────────────────

@@ -4,3 +4,6 @@ encontrados.json
 *.log
 .DS_Store
 data/
+
+# Test coverage
+coverage/

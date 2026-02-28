@@ -29,6 +29,9 @@ function buildSearchUrl(config) {
   if (config.categoryId) {
     params.set('category_ids', config.categoryId);
   }
+  if (config.shippingOnly) {
+    params.set('shipping_available', 'true');
+  }
 
   return `${base}?${params.toString()}`;
 }

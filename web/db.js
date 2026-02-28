@@ -31,18 +31,21 @@ function getDb() {
 function initSchema() {
   getDb().exec(`
     CREATE TABLE IF NOT EXISTS subscriptions (
-      id              TEXT PRIMARY KEY,
-      email           TEXT NOT NULL,
-      keywords        TEXT NOT NULL,
-      min_price       REAL,
-      max_price       REAL,
-      category_id     TEXT DEFAULT '',
-      created_at      INTEGER NOT NULL,
-      last_run_at     INTEGER,
-      active          INTEGER NOT NULL DEFAULT 1,
-      emails_sent     INTEGER NOT NULL DEFAULT 0,
-      email_frequency TEXT NOT NULL DEFAULT 'immediate',
-      last_digest_at  INTEGER
+      id                  TEXT PRIMARY KEY,
+      email               TEXT NOT NULL,
+      keywords            TEXT NOT NULL,
+      min_price           REAL,
+      max_price           REAL,
+      category_id         TEXT DEFAULT '',
+      created_at          INTEGER NOT NULL,
+      last_run_at         INTEGER,
+      active              INTEGER NOT NULL DEFAULT 1,
+      emails_sent         INTEGER NOT NULL DEFAULT 0,
+      email_frequency     TEXT NOT NULL DEFAULT 'immediate',
+      last_digest_at      INTEGER,
+      shipping_only       INTEGER NOT NULL DEFAULT 0,
+      verified            INTEGER NOT NULL DEFAULT 0,
+      verification_token  TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_subscriptions_email ON subscriptions(email);
@@ -80,6 +83,9 @@ function initSchema() {
     'ALTER TABLE subscriptions ADD COLUMN last_digest_at INTEGER',
     'ALTER TABLE subscriptions ADD COLUMN emails_failed INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE subscriptions ADD COLUMN consecutive_failures INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE subscriptions ADD COLUMN shipping_only INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE subscriptions ADD COLUMN verified INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE subscriptions ADD COLUMN verification_token TEXT',
   ];
   for (const sql of migrations) {
     try { getDb().exec(sql); } catch (e) { /* column already exists */ }
@@ -88,17 +94,57 @@ function initSchema() {
 
 /**
  * Crea una nueva suscripción
- * @param {string} frequency - 'immediate' | 'daily' | 'weekly'
+ * @param {string}  frequency    - 'immediate' | 'daily' | 'weekly'
+ * @param {boolean} shippingOnly - true para filtrar solo productos con envío
+ * @param {boolean} verified     - true si no se requiere verificación de email
+ * @param {string}  verificationToken - token UUID para verificar el email
  */
-function createSubscription({ email, keywords, minPrice, maxPrice, categoryId, frequency = 'immediate' }) {
+function createSubscription({
+  email, keywords, minPrice, maxPrice, categoryId,
+  frequency = 'immediate', shippingOnly = false,
+  verified = false, verificationToken = null,
+}) {
   const id = uuidv4();
   const validFrequencies = ['immediate', 'daily', 'weekly'];
   const freq = validFrequencies.includes(frequency) ? frequency : 'immediate';
   getDb().prepare(`
-    INSERT INTO subscriptions (id, email, keywords, min_price, max_price, category_id, created_at, email_frequency)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, email.toLowerCase().trim(), keywords.trim(), minPrice || null, maxPrice || null, categoryId || '', Date.now(), freq);
+    INSERT INTO subscriptions
+      (id, email, keywords, min_price, max_price, category_id, created_at,
+       email_frequency, shipping_only, verified, verification_token)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    email.toLowerCase().trim(),
+    keywords.trim(),
+    minPrice || null,
+    maxPrice || null,
+    categoryId || '',
+    Date.now(),
+    freq,
+    shippingOnly ? 1 : 0,
+    verified ? 1 : 0,
+    verificationToken || null,
+  );
   return id;
+}
+
+/**
+ * Verifica una suscripción por su token.
+ * @returns {Object|null} la suscripción si el token es válido, null si no existe
+ */
+function verifySubscription(token) {
+  const db = getDb();
+  const sub = db.prepare('SELECT * FROM subscriptions WHERE verification_token = ?').get(token);
+  if (!sub) return null;
+  db.prepare('UPDATE subscriptions SET verified = 1, verification_token = NULL WHERE id = ?').run(sub.id);
+  return sub;
+}
+
+/**
+ * Obtiene una suscripción por su token de verificación (sin verificarla)
+ */
+function getSubscriptionByToken(token) {
+  return getDb().prepare('SELECT * FROM subscriptions WHERE verification_token = ?').get(token);
 }
 
 /**
@@ -413,6 +459,8 @@ module.exports = {
   getActiveSubscriptions,
   getAllSubscriptions,
   getSubscription,
+  getSubscriptionByToken,
+  verifySubscription,
   deleteSubscription,
   reactivateSubscription,
   hardDeleteSubscription,

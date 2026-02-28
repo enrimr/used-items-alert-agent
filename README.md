@@ -278,6 +278,39 @@ MAX_ALERTS_PER_EMAIL=10
 
 ---
 
+## 📧 Email Verification
+
+When enabled, users must confirm their email address before their alert becomes active. This prevents abuse (alerts created with someone else's email) and ensures delivery quality.
+
+**How it works:**
+1. User submits the form → alert is created in the DB with `verified = 0`
+2. A confirmation email is sent with a unique link: `GET /verify/<token>`
+3. Until the user clicks the link, the worker **skips** that subscription
+4. After clicking → `verified = 1`, alert activates immediately
+
+**Enable/disable:**
+```env
+REQUIRE_EMAIL_VERIFICATION=false   # default: off (alert activates instantly)
+REQUIRE_EMAIL_VERIFICATION=true    # sends verification email before activating
+```
+
+> ⚠️ Requires email to be configured (`RESEND_API_KEY` or `EMAIL_SMTP_*`). If no email transport is set up, alerts will never activate when verification is required.
+
+---
+
+## 🚚 Shipping filter
+
+Users can check "Solo productos con envío" (shipping only) when creating an alert. When enabled:
+
+- The scraper adds `shipping_available=true` to the Wallapop search URL
+- Only products that offer shipping are returned and notified
+
+**In the form:** checkbox "🚚 Solo productos con envío" below the frequency selector.
+
+**In the DB:** stored as `shipping_only = 1` on the subscription row.
+
+---
+
 ## 🛡️ Auto-deactivation on email failures
 
 The worker tracks **consecutive email delivery failures** per subscription. If an email address accumulates N consecutive failures (default: 5), **all active alerts for that email are automatically deactivated** to prevent pointless retries.

@@ -5,23 +5,7 @@
 
 require('dotenv').config();
 
-const CATEGORIES = {
-  '': 'Todas las categorías',
-  '12465': 'Tecnología',
-  '12579': 'Móviles y telefonía',
-  '15000': 'Informática',
-  '12545': 'Moda y accesorios',
-  '12543': 'Motor',
-  '12463': 'Deporte y ocio',
-  '12459': 'Hogar y jardín',
-  '12467': 'Televisión y audio',
-  '12461': 'Consolas y videojuegos',
-  '12473': 'Cámaras y fotografía',
-  '14000': 'Coleccionismo',
-  '12449': 'Libros y música',
-  '12469': 'Bebés y niños',
-  '12471': 'Otros',
-};
+const { CATEGORIES } = require('./categories');
 
 function loadConfig() {
   const keywords = process.env.KEYWORDS || '';
@@ -57,12 +41,12 @@ function loadConfig() {
   const saveToFile = process.env.SAVE_TO_FILE !== 'false';
   const outputFile = process.env.OUTPUT_FILE || './encontrados.json';
 
-  // Email
+  // Email — activo si hay destinatario Y algún transporte configurado (Resend o SMTP)
   const emailEnabled = !!(
-    process.env.EMAIL_TO &&
-    process.env.EMAIL_SMTP_HOST &&
-    process.env.EMAIL_SMTP_USER &&
-    process.env.EMAIL_SMTP_PASS
+    process.env.EMAIL_TO && (
+      process.env.RESEND_API_KEY ||
+      (process.env.EMAIL_SMTP_HOST && process.env.EMAIL_SMTP_USER && process.env.EMAIL_SMTP_PASS)
+    )
   );
 
   return {

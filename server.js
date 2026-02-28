@@ -19,6 +19,7 @@ require('dotenv').config();
 
 const { startServer } = require('./web/server');
 const { startWorker } = require('./web/worker');
+const { verifyEmailConfig } = require('./src/mailer');
 
 const args = process.argv.slice(2);
 const webOnly = args.includes('--web');
@@ -30,25 +31,16 @@ async function main() {
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
-  // Verificar configuración de email
+  // Verificar configuración de email usando el módulo unificado
   if (process.env.RESEND_API_KEY) {
     console.log(`📧 Email via Resend (HTTP API) — recomendado en Railway`);
   } else if (process.env.EMAIL_SMTP_HOST && process.env.EMAIL_SMTP_USER && process.env.EMAIL_SMTP_PASS) {
     console.log(`📧 Email via SMTP: ${process.env.EMAIL_SMTP_USER} → ${process.env.EMAIL_SMTP_HOST}:${process.env.EMAIL_SMTP_PORT || 587}`);
-    // Verify SMTP connection on startup
-    try {
-      const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SMTP_HOST,
-        port: parseInt(process.env.EMAIL_SMTP_PORT || '587', 10),
-        secure: process.env.EMAIL_SMTP_SECURE === 'true',
-        auth: { user: process.env.EMAIL_SMTP_USER, pass: process.env.EMAIL_SMTP_PASS },
-        tls: { rejectUnauthorized: false },
-      });
-      await transporter.verify();
+    const check = await verifyEmailConfig();
+    if (check.ok) {
       console.log('✅ Conexión SMTP verificada correctamente');
-    } catch (err) {
-      console.error(`❌ Error SMTP: ${err.message}`);
+    } else {
+      console.error(`❌ Error SMTP: ${check.reason}`);
       console.error('   En Railway usa RESEND_API_KEY en lugar de SMTP (Railway bloquea puertos SMTP)');
     }
   } else {

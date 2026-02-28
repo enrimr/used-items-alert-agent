@@ -4,7 +4,7 @@
  */
 
 const { fetchItems, createBrowser } = require('../src/scraper');
-const { sendAlertEmail } = require('./mailer');
+const { sendAlertEmail } = require('../src/mailer');
 const {
   getActiveSubscriptions,
   filterNewItems,
@@ -37,35 +37,40 @@ function shouldSendDigest(sub) {
   return true; // immediate
 }
 
-const CATEGORIES = require('../src/config').CATEGORIES;
+const { CATEGORIES } = require('../src/categories');
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
 const CONCURRENCY = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
 
-let browser = null;
-let browserCreating = false; // mutex to prevent race condition
-let cycleCount = 0;
-let running = false;
+let browser     = null;
+let browserReady = Promise.resolve(); // Promise-based mutex: sin busy-wait ni timers
+let cycleCount  = 0;
+let running     = false;
 
+/**
+ * Devuelve el browser compartido, creándolo si no existe.
+ * Usa una Promise como mutex real: las coroutines que llegan mientras
+ * el browser se está creando esperan en `await browserReady` sin timers.
+ */
 async function ensureBrowser() {
-  // Wait if another worker is already creating the browser
-  while (browserCreating) {
-    await new Promise(r => setTimeout(r, 100));
-  }
+  await browserReady; // espera a que cualquier creación en curso termine
+
   if (!browser) {
-    browserCreating = true;
+    // Crear una nueva Promise que bloqueará a los que lleguen después
+    let resolve;
+    browserReady = new Promise(r => { resolve = r; });
     try {
       browser = await createBrowser(process.env.HEADLESS !== 'false');
     } finally {
-      browserCreating = false;
+      resolve(); // desbloquea a todos los waiters de golpe
     }
   }
   return browser;
 }
 
 async function closeBrowser() {
-  if (browser && !browserCreating) {
+  if (browser) {
     const b = browser;
-    browser = null; // set null first to prevent others from using it
+    browser = null; // poner a null antes de cerrar para que nadie más lo use
     try { await b.close(); } catch (e) {}
   }
 }
@@ -101,14 +106,22 @@ async function runWithConcurrency(items, fn, concurrency) {
  * - daily/weekly: acumula y envía resumen cuando toca
  */
 async function processSubscription(sub) {
+  // Saltar suscripciones pendientes de verificación de email
+  const requireVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+  if (requireVerification && !sub.verified) {
+    console.log(`  ⏸ [${sub.email}] "${sub.keywords}" → pendiente de verificación, omitida`);
+    return;
+  }
+
   const config = {
-    keywords: sub.keywords,
-    minPrice: sub.min_price,
-    maxPrice: sub.max_price,
-    categoryId: sub.category_id || '',
-    categoryName: CATEGORIES[sub.category_id] || 'Todas',
-    maxResults: 40,
+    keywords:       sub.keywords,
+    minPrice:       sub.min_price,
+    maxPrice:       sub.max_price,
+    categoryId:     sub.category_id || '',
+    categoryName:   CATEGORIES[sub.category_id] || 'Todas',
+    maxResults:     40,
     emailFrequency: sub.email_frequency || 'immediate',
+    shippingOnly:   sub.shipping_only === 1 || sub.shipping_only === true,
   };
 
   const freq = sub.email_frequency || 'immediate';
