@@ -39,23 +39,34 @@ function shouldSendDigest(sub) {
 
 const CATEGORIES = require('../src/config').CATEGORIES;
 const POLL_INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
-const CONCURRENCY = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '3', 10));
+const CONCURRENCY = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
 
 let browser = null;
+let browserCreating = false; // mutex to prevent race condition
 let cycleCount = 0;
 let running = false;
 
 async function ensureBrowser() {
+  // Wait if another worker is already creating the browser
+  while (browserCreating) {
+    await new Promise(r => setTimeout(r, 100));
+  }
   if (!browser) {
-    browser = await createBrowser(process.env.HEADLESS !== 'false');
+    browserCreating = true;
+    try {
+      browser = await createBrowser(process.env.HEADLESS !== 'false');
+    } finally {
+      browserCreating = false;
+    }
   }
   return browser;
 }
 
 async function closeBrowser() {
-  if (browser) {
-    try { await browser.close(); } catch (e) {}
-    browser = null;
+  if (browser && !browserCreating) {
+    const b = browser;
+    browser = null; // set null first to prevent others from using it
+    try { await b.close(); } catch (e) {}
   }
 }
 
