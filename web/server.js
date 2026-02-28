@@ -303,7 +303,7 @@ app.get('/admin', adminAuth, (req, res) => {
         <form method="POST" action="/admin/set-frequency" style="display:flex;gap:4px;align-items:center;">
           <input type="hidden" name="id" value="${s.id}" />
           <select name="frequency" onchange="this.form.submit()"
-            style="padding:3px 6px;border:1px solid #d1fae5;border-radius:5px;font-size:11px;background:#fff;cursor:pointer;">
+            style="padding:3px 6px;border:1px solid rgba(${getThemeVars().shadowRgb},0.3);border-radius:5px;font-size:11px;background:#fff;cursor:pointer;">
             <option value="immediate" ${(s.email_frequency||'immediate')==='immediate'?'selected':''}>⚡ Inmediato</option>
             <option value="daily" ${s.email_frequency==='daily'?'selected':''}>📅 Diario</option>
             <option value="weekly" ${s.email_frequency==='weekly'?'selected':''}>📆 Semanal</option>
