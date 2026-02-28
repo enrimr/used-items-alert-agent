@@ -11,9 +11,10 @@ const nodemailer = require('nodemailer');
 
 function getThemeColors() {
   const theme = (process.env.THEME_COLOR || 'orange').toLowerCase();
-  if (theme === 'teal' || theme === 'green') {
-    return { primary: '#13c1ac', primaryDark: '#0ea897' };
-  }
+  if (theme === 'teal' || theme === 'green') return { primary: '#13c1ac', primaryDark: '#0ea897' };
+  if (theme === 'purple' || theme === 'violet') return { primary: '#7c3aed', primaryDark: '#6d28d9' };
+  if (theme === 'blue') return { primary: '#2563eb', primaryDark: '#1d4ed8' };
+  if (theme === 'neutral' || theme === 'gray' || theme === 'grey') return { primary: '#475569', primaryDark: '#334155' };
   return { primary: '#f97316', primaryDark: '#ea6a0a' };
 }
 

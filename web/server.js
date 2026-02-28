@@ -46,21 +46,16 @@ const subscribeLimiter = rateLimit({
 // ────────────────────────────────────────────
 function getThemeVars() {
   const theme = (process.env.THEME_COLOR || 'orange').toLowerCase();
-  if (theme === 'teal' || theme === 'green') {
-    return {
-      primary: '#13c1ac',
-      primaryDark: '#0ea897',
-      bg: '#f0fdf9',
-      shadowRgb: '19,193,172',
-    };
-  }
+  if (theme === 'teal' || theme === 'green')
+    return { primary: '#13c1ac', primaryDark: '#0ea897', bg: '#f0fdf9', shadowRgb: '19,193,172' };
+  if (theme === 'purple' || theme === 'violet')
+    return { primary: '#7c3aed', primaryDark: '#6d28d9', bg: '#f5f3ff', shadowRgb: '124,58,237' };
+  if (theme === 'blue')
+    return { primary: '#2563eb', primaryDark: '#1d4ed8', bg: '#eff6ff', shadowRgb: '37,99,235' };
+  if (theme === 'neutral' || theme === 'gray' || theme === 'grey')
+    return { primary: '#475569', primaryDark: '#334155', bg: '#f8fafc', shadowRgb: '71,85,105' };
   // default: orange
-  return {
-    primary: '#f97316',
-    primaryDark: '#ea6a0a',
-    bg: '#fff7f0',
-    shadowRgb: '249,115,22',
-  };
+  return { primary: '#f97316', primaryDark: '#ea6a0a', bg: '#fff7f0', shadowRgb: '249,115,22' };
 }
 
 function injectTheme(html) {
