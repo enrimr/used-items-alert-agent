@@ -7,6 +7,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { SCRAPER_API_TIMEOUT_MS, SCRAPER_NAV_TIMEOUT_MS, SCRAPER_MAX_IMAGES } = require('./constants');
 
 /**
  * Construye la URL de búsqueda de Wallapop (nueva URL con /search)
@@ -99,7 +100,7 @@ function formatLocation(location) {
 
 function extractImages(item) {
   if (!item.images || !Array.isArray(item.images)) return [];
-  return item.images.slice(0, 3).map((img) => {
+  return item.images.slice(0, SCRAPER_MAX_IMAGES).map((img) => {
     if (img.urls) {
       return img.urls.medium || img.urls.large || img.urls.small || Object.values(img.urls)[0];
     }
@@ -159,14 +160,14 @@ async function fetchItems(config, browser) {
         }
       });
 
-      // Timeout after 40s
-      setTimeout(() => resolve(null), 40000);
+      // Timeout after API_TIMEOUT_MS
+      setTimeout(() => resolve(null), SCRAPER_API_TIMEOUT_MS);
     });
 
     // Navigate to the search page
     await page.goto(searchUrl, {
       waitUntil: 'networkidle2',
-      timeout: 50000,
+      timeout: SCRAPER_NAV_TIMEOUT_MS,
     });
 
     // Wait for API response interception

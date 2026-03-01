@@ -7,6 +7,12 @@ const { fetchItems } = require('./scraper');
 const { ensureBrowser, closeBrowser } = require('./browser');
 const { ItemStore } = require('./store');
 const {
+  AGENT_BROWSER_RESTART_CYCLES,
+  AGENT_MAX_CONSECUTIVE_ERRORS,
+  AGENT_CLEANUP_CYCLES,
+  AGENT_STORE_MAX_DAYS,
+} = require('./constants');
+const {
   printHeader,
   printStatus,
   printNewItems,
@@ -22,7 +28,7 @@ class WallapopAgent {
     this.running = false;
     this.cycleCount = 0;
     this.errorCount = 0;
-    this.MAX_CONSECUTIVE_ERRORS = 5;
+    this.MAX_CONSECUTIVE_ERRORS = AGENT_MAX_CONSECUTIVE_ERRORS;
   }
 
   /**
@@ -43,8 +49,8 @@ class WallapopAgent {
     printStatus(`Búsqueda #${this.cycleCount} en Wallapop...`, 'searching');
 
     try {
-      // Reiniciar navegador cada 5 ciclos para evitar memory leaks y timeouts
-      if (this.cycleCount % 5 === 1) {
+      // Reiniciar navegador cada N ciclos para evitar memory leaks y timeouts
+      if (this.cycleCount % AGENT_BROWSER_RESTART_CYCLES === 1) {
         await this._initBrowser();
       }
 
@@ -88,9 +94,9 @@ class WallapopAgent {
         );
       }
 
-      // Limpiar items muy antiguos cada 100 ciclos
-      if (this.cycleCount % 100 === 0) {
-        this.store.cleanup(30);
+      // Limpiar items muy antiguos cada N ciclos
+      if (this.cycleCount % AGENT_CLEANUP_CYCLES === 0) {
+        this.store.cleanup(AGENT_STORE_MAX_DAYS);
         this.store.save(this.config.saveToFile);
       }
 

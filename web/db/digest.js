@@ -3,8 +3,7 @@
  */
 
 const { getDb } = require('./connection');
-
-const DIGEST_MAX_ITEMS = 100; // max items per subscription in digest store
+const { DIGEST_MAX_ITEMS } = require('../../src/constants');
 
 /**
  * Adds new items to the digest store for a subscription (upsert, max 100)

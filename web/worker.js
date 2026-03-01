@@ -40,8 +40,13 @@ function shouldSendDigest(sub) {
 }
 
 const { CATEGORIES } = require('../src/categories');
-const POLL_INTERVAL_MS    = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
-const CONCURRENCY         = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
+const {
+  WORKER_BROWSER_RESTART_CYCLES,
+  WORKER_CLEANUP_CYCLES,
+  WORKER_MAX_RESULTS,
+} = require('../src/constants');
+const POLL_INTERVAL_MS       = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
+const CONCURRENCY            = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
 const SCRAPER_FAIL_THRESHOLD = Math.max(1, parseInt(process.env.SCRAPER_FAILURE_THRESHOLD || '3', 10));
 
 // Contador de fallos consecutivos del scraper por suscripción (en memoria)
@@ -95,7 +100,7 @@ async function processSubscription(sub) {
     maxPrice:       sub.max_price,
     categoryId:     sub.category_id || '',
     categoryName:   CATEGORIES[sub.category_id] || 'Todas',
-    maxResults:     40,
+    maxResults:     WORKER_MAX_RESULTS,
     emailFrequency: sub.email_frequency || 'immediate',
     shippingOnly:   sub.shipping_only === 1 || sub.shipping_only === true,
   };
@@ -210,8 +215,8 @@ async function runCycle() {
 
   console.log(`\n[Worker #${cycleCount}] Procesando ${subscriptions.length} suscripción(es) [concurrencia: ${CONCURRENCY}]...`);
 
-  // Reiniciar navegador cada 10 ciclos
-  if (cycleCount % 10 === 1) {
+  // Reiniciar navegador cada N ciclos
+  if (cycleCount % WORKER_BROWSER_RESTART_CYCLES === 1) {
     await closeBrowser();
   }
 
@@ -221,8 +226,8 @@ async function runCycle() {
 
   console.log(`[Worker #${cycleCount}] Ciclo completado en ${elapsed}s`);
 
-  // Limpiar items viejos cada 50 ciclos
-  if (cycleCount % 50 === 0) {
+  // Limpiar items viejos cada N ciclos
+  if (cycleCount % WORKER_CLEANUP_CYCLES === 0) {
     cleanupOldSeenItems();
   }
 }
