@@ -38,6 +38,22 @@ function renderEmailTemplate(name, vars) {
   );
 }
 
+// ── i18n ──────────────────────────────────────────────────────────────────
+
+/**
+ * Obtiene la función de traducción para el idioma especificado.
+ * Usa lazy import para evitar dependencias circulares en modo CLI.
+ */
+function getTForLang(lang) {
+  try {
+    const { getT, DEFAULT_LANG } = require('../web/i18n');
+    return getT(lang || DEFAULT_LANG);
+  } catch {
+    // En modo CLI sin acceso al módulo web/i18n — fallback a español
+    return (key) => key;
+  }
+}
+
 // ── Detección del remitente ────────────────────────────────────────────────
 
 function getSenderAddress() {
@@ -149,7 +165,8 @@ function buildUnsubscribeUrl(subscriptionId) {
 
 // ── Builders de contenido dinámico ────────────────────────────────────────
 
-function buildItemsHtml(items, primaryColor) {
+function buildItemsHtml(items, primaryColor, viewLabel) {
+  const label = viewLabel || 'Ver →';
   return items.map((item) => {
     const price = `${Number(item.price).toFixed(2)} ${item.currency || '€'}`;
     const desc  = item.description
@@ -171,7 +188,7 @@ function buildItemsHtml(items, primaryColor) {
           ${desc ? `<div style="font-size:13px;color:#999;margin-bottom:10px;">${desc}</div>` : ''}
           <a href="${item.url}"
              style="display:inline-block;background:${primaryColor};color:#fff;padding:9px 18px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;">
-            Ver →
+            ${label}
           </a>
         </td>
       </tr>`;
@@ -188,14 +205,14 @@ function buildSearchBadges(config, t) {
   ].filter(Boolean).join('');
 }
 
-function buildAlertFooter(unsubUrl, primaryColor) {
+function buildAlertFooter(unsubUrl, primaryColor, footerText, unsubLabel) {
   if (unsubUrl) {
     return `<div style="font-size:12px;color:#bbb;margin-bottom:8px;">
-         Recibes este email porque creaste una alerta en Wallapop Alertas.
+         ${footerText || 'Recibes este email porque creaste una alerta en Wallapop Alertas.'}
        </div>
        <a href="${unsubUrl}"
           style="font-size:12px;color:#f87171;text-decoration:none;border:1px solid #fecaca;padding:6px 16px;border-radius:20px;">
-         ❌ Eliminar esta alerta
+         ${unsubLabel || '❌ Eliminar esta alerta'}
        </a>`;
   }
   return `<div style="font-size:12px;color:#bbb;">
@@ -236,9 +253,10 @@ function buildAlertText(items, config, unsubUrl = null) {
  * @param {string}      toEmail        — Destinatario
  * @param {string|null} subscriptionId — ID de suscripción web (para link de cancelación).
  *                                       null en modo CLI (sin link de cancelación).
+ * @param {string}      [lang]         — Código de idioma del usuario ('es', 'en', 'it', 'ca')
  * @returns {Promise<boolean>}
  */
-async function sendAlertEmail(items, config, toEmail, subscriptionId = null) {
+async function sendAlertEmail(items, config, toEmail, subscriptionId = null, lang = 'es') {
   if (!items || items.length === 0) return false;
 
   const fromAddr = getSenderAddress();
@@ -247,20 +265,40 @@ async function sendAlertEmail(items, config, toEmail, subscriptionId = null) {
   const recipient = toEmail || process.env.EMAIL_TO;
   if (!recipient) return false;
 
-  const t        = getTheme();
+  const t        = getTForLang(lang);
+  const theme    = getTheme();
   const unsubUrl = subscriptionId ? buildUnsubscribeUrl(subscriptionId) : null;
   const plural   = items.length > 1 ? 's' : '';
-  const subject  = `🆕 ${items.length} nuevo${plural} en Wallapop: "${config.keywords}"${config.maxPrice ? ` (hasta ${config.maxPrice}€)` : ''}`;
+
+  const subjectTpl = t('email_alert_subject');
+  const subject = subjectTpl
+    .replace('{count}', items.length)
+    .replace('{plural}', plural)
+    .replace('{keywords}', config.keywords)
+    .replace('{price_suffix}', config.maxPrice ? ` (hasta ${config.maxPrice}€)` : '');
+
+  const subtitleTpl = t('email_alert_subtitle');
+  const subtitle = subtitleTpl
+    .replace('{count}', items.length)
+    .replace('{plural}', plural)
+    .replace('{plural_it}', items.length > 1 ? 'i' : 'o'); // Italian plurals
+
   const senderName = subscriptionId ? 'Wallapop Alertas' : 'Wallapop Agent';
 
   const html = renderEmailTemplate('alert', {
-    primary:          t.primary,
-    primaryDark:      t.primaryDark,
-    itemsCount:       items.length,
-    itemsCountPlural: plural,
-    badges:           buildSearchBadges(config, t),
-    itemsHtml:        buildItemsHtml(items, t.primary),
-    footerContent:    buildAlertFooter(unsubUrl, t.primary),
+    lang,
+    primary:           theme.primary,
+    primaryDark:       theme.primaryDark,
+    email_alert_title:    t('email_alert_title'),
+    email_alert_subtitle: subtitle,
+    badges:            buildSearchBadges(config, theme),
+    itemsHtml:         buildItemsHtml(items, theme.primary, t('email_alert_view')),
+    footerContent:     buildAlertFooter(
+      unsubUrl,
+      theme.primary,
+      t('email_alert_footer'),
+      t('email_alert_unsub')
+    ),
   });
 
   return send({
@@ -276,14 +314,16 @@ async function sendAlertEmail(items, config, toEmail, subscriptionId = null) {
  * Envía email de confirmación cuando se crea una suscripción web.
  *
  * @param {string} toEmail
- * @param {Object} sub — { id, keywords, min_price, max_price }
+ * @param {Object} sub   — { id, keywords, min_price, max_price }
+ * @param {string} [lang] — Código de idioma del usuario
  * @returns {Promise<boolean>}
  */
-async function sendConfirmationEmail(toEmail, sub) {
+async function sendConfirmationEmail(toEmail, sub, lang = 'es') {
   const fromAddr = getSenderAddress();
   if (!fromAddr) return false;
 
-  const t        = getTheme();
+  const t        = getTForLang(lang);
+  const theme    = getTheme();
   const unsubUrl = buildUnsubscribeUrl(sub.id);
 
   const priceInfo = [
@@ -291,17 +331,27 @@ async function sendConfirmationEmail(toEmail, sub) {
     sub.max_price != null ? `hasta ${sub.max_price}€` : '',
   ].filter(Boolean).join(' ');
 
+  const priceLbl = t('email_confirmation_price');
   const priceRow = priceInfo
     ? `<tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Precio</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">${priceLbl}</td>
           <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${priceInfo}</td>
         </tr>`
     : '';
 
-  const subject = `✅ Alerta creada: "${sub.keywords}" en Wallapop`;
-  const html    = renderEmailTemplate('confirmation', {
-    primary:     t.primary,
-    primaryDark: t.primaryDark,
+  const subjectTpl = t('email_confirmation_subject');
+  const subject = subjectTpl.replace('{keywords}', sub.keywords);
+
+  const html = renderEmailTemplate('confirmation', {
+    lang,
+    primary:     theme.primary,
+    primaryDark: theme.primaryDark,
+    email_confirmation_title:     t('email_confirmation_title'),
+    email_confirmation_subtitle:  t('email_confirmation_subtitle'),
+    email_confirmation_intro:     t('email_confirmation_intro'),
+    email_confirmation_search:    t('email_confirmation_search'),
+    email_confirmation_email_lbl: t('email_confirmation_email_lbl'),
+    email_confirmation_unsub:     t('email_confirmation_unsub'),
     keywords:    sub.keywords,
     priceRow,
     email:       toEmail,
@@ -344,27 +394,42 @@ async function verifyEmailConfig() {
  * REQUIRE_EMAIL_VERIFICATION=true está activo.
  *
  * @param {string} toEmail
- * @param {Object} sub — { id, keywords, verification_token }
+ * @param {Object} sub   — { id, keywords, verification_token }
+ * @param {string} [lang] — Código de idioma del usuario
  * @returns {Promise<boolean>}
  */
-async function sendVerificationEmail(toEmail, sub) {
+async function sendVerificationEmail(toEmail, sub, lang = 'es') {
   const fromAddr = getSenderAddress();
   if (!fromAddr) return false;
 
-  const t          = getTheme();
+  const t          = getTForLang(lang);
+  const theme      = getTheme();
   const verifyUrl  = `${process.env.BASE_URL || 'http://localhost:3000'}/verify/${sub.verification_token}`;
   const unsubUrl   = buildUnsubscribeUrl(sub.id);
-  const subject    = `✅ Confirma tu alerta: "${sub.keywords}"`;
+
+  const subjectTpl = t('email_verification_subject');
+  const subject    = subjectTpl.replace('{keywords}', sub.keywords);
+
+  const introTpl = t('email_verification_intro');
+  const intro    = introTpl.replace('{keywords}', sub.keywords).replace(/\{keywords\}/g, sub.keywords);
 
   const html = renderEmailTemplate('verification', {
-    primary:     t.primary,
-    primaryDark: t.primaryDark,
+    lang,
+    primary:     theme.primary,
+    primaryDark: theme.primaryDark,
+    email_verification_title:      t('email_verification_title'),
+    email_verification_subtitle:   t('email_verification_subtitle'),
+    email_verification_intro:      intro,
+    email_verification_cta:        t('email_verification_cta'),
+    email_verification_disclaimer: t('email_verification_disclaimer'),
+    email_verification_unsub:      t('email_verification_unsub'),
     keywords:    sub.keywords,
     verifyUrl,
     unsubUrl,
   });
 
-  const text = `Confirma tu alerta de Wallapop\n\nAlerta: "${sub.keywords}"\n\nHaz clic aquí para confirmar:\n${verifyUrl}\n\nSi no creaste esta alerta, ignora este email.\n`;
+  const ctaText = t('email_verification_cta');
+  const text = `${t('email_verification_title')}\n\n${t('email_verification_intro').replace('{keywords}', sub.keywords)}\n\n${ctaText}:\n${verifyUrl}\n\n${t('email_verification_disclaimer').replace(/<br>/g, '\n')}\n`;
 
   return send({
     to:          toEmail,
@@ -392,11 +457,11 @@ async function sendAdminAlert(subscriptionEmail, keywords, failCount, errorMessa
   const fromAddr = getSenderAddress();
   if (!fromAddr) return false;
 
-  const t       = getTheme();
+  const theme   = getTheme();
   const subject = `🚨 Worker: ${failCount} fallos consecutivos — "${keywords}"`;
 
   const html = renderEmailTemplate('admin-alert', {
-    primary:           t.primary,
+    primary:           theme.primary,
     failCount,
     subscriptionEmail,
     keywords,

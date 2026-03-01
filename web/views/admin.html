@@ -1,108 +1,81 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{lang}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin — Wallapop Alertas</title>
+  <title>{{adminTitle}}</title>
+  <link rel="stylesheet" href="/admin.css" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: rgba({{shadowRgb}},0.04); color: #1a1a2e; }
-    header { background: linear-gradient(135deg, {{primary}}, {{primaryDark}}); padding: 16px 20px; }
-    header h1 { color: #fff; font-size: 17px; font-weight: 800; }
-    .nav { display: flex; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
-    .nav a { color: {{primary}}; font-size: 13px; text-decoration: none; font-weight: 600; }
-    .nav a:hover { text-decoration: underline; }
-    .stats { display: flex; gap: 10px; padding: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .stats::-webkit-scrollbar { display: none; }
-    .stat { background: #fff; border-radius: 10px; padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); text-align: center; flex: 0 0 auto; min-width: 100px; }
-    .stat .num { font-size: 22px; font-weight: 800; color: {{primary}}; white-space: nowrap; }
-    .stat .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; white-space: nowrap; }
-    .section { padding: 8px 16px 24px; }
-    .section h2 { font-size: 13px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-    .card-list { display: flex; flex-direction: column; gap: 10px; }
-    .card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .card-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-    .card-row:last-child { margin-bottom: 0; }
-    .card-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; min-width: 80px; }
-    .card-value { font-size: 13px; color: #1a1a2e; text-align: right; flex: 1; word-break: break-word; }
-    .desktop-table, .users-desktop-table, .alerts-desktop-table { display: none; }
-    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-    .badge-active { background: #d1fae5; color: #065f46; }
-    .badge-inactive { background: #f3f4f6; color: #9ca3af; }
-    .btn-delete { color: #ef4444; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid #fecaca; border-radius: 6px; display: inline-block; background: transparent; cursor: pointer; }
-    .btn-delete:hover { background: #fef2f2; }
-    .btn-reactivate { color: {{primary}}; text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 1px solid rgba({{shadowRgb}},0.3); border-radius: 6px; display: inline-block; background: transparent; cursor: pointer; }
+    :root {
+      --primary:      {{primary}};
+      --primary-dark: {{primaryDark}};
+      --shadow-rgb:   {{shadowRgb}};
+    }
+    body         { background: rgba({{shadowRgb}},0.04); }
+    header       { background: linear-gradient(135deg, {{primary}}, {{primaryDark}}); }
+    .nav a       { color: {{primary}}; }
+    .stat .num   { color: {{primary}}; }
+    .btn-reactivate       { color: {{primary}}; border: 1px solid rgba({{shadowRgb}},0.3); }
     .btn-reactivate:hover { background: rgba({{shadowRgb}},0.05); }
-    .btn-hard-delete { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; display: inline-block; margin-top: 2px; background: transparent; cursor: pointer; }
-    .btn-hard-delete:hover { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
-    /* Normalizar forms inline de post-btn */
-    form[style*="display:inline"] { margin: 0; padding: 0; }
-    .btn-save { background: {{primary}}; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-save    { background: {{primary}}; }
     .btn-save:hover { background: {{primaryDark}}; }
-    .limit-form { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-    .limit-form input { width: 60px; padding: 5px 8px; border: 1px solid #d1fae5; border-radius: 6px; font-size: 13px; text-align: center; }
-    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
-    @media (min-width: 768px) {
-      header { padding: 20px 32px; } header h1 { font-size: 20px; }
-      .nav { padding: 12px 32px; }
-      .stats { padding: 20px 32px 8px; gap: 16px; }
-      .stat { padding: 16px 24px; } .stat .num { font-size: 26px; }
-      .section { padding: 8px 32px 32px; }
-      .users-card-list { display: none; } .users-desktop-table { display: table; }
-    }
-    @media (min-width: 1100px) {
-      .alerts-card-list { display: none; } .alerts-desktop-table { display: table; }
-    }
-    .desktop-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); min-width: 600px; }
-    .desktop-table th { background: rgba({{shadowRgb}},0.06); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba({{shadowRgb}},0.15); white-space: nowrap; }
-    .desktop-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-    .desktop-table tr.inactive td { opacity: 0.45; }
-    .desktop-table tr:last-child td { border-bottom: none; }
+    .desktop-table th { background: rgba({{shadowRgb}},0.06); border-bottom-color: rgba({{shadowRgb}},0.15); }
     .desktop-table tr:hover td { background: rgba({{shadowRgb}},0.04); }
-    @media (max-width: 479px) {
-      .stats { gap: 8px; padding: 12px; } .stat { padding: 10px 12px; min-width: 80px; }
-      .stat .num { font-size: 18px; } .stat .lbl { font-size: 10px; }
-      .section { padding: 8px 12px 20px; }
+    #filter-search,
+    #filter-freq { border-color: rgba({{shadowRgb}},0.3); }
+    /* ── Language selector ──────────────────────────────────────── */
+    .lang-selector { display:inline-flex; align-items:center; margin-left:auto; }
+    .lang-select {
+      font-size:12px; padding:3px 8px; border-radius:6px;
+      border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.15);
+      color:#fff; cursor:pointer; outline:none; backdrop-filter:blur(4px);
     }
+    .lang-select:hover, .lang-select:focus {
+      background:rgba(255,255,255,0.25); border-color:rgba(255,255,255,0.8);
+    }
+    .lang-select option { background:#fff; color:#374151; }
   </style>
 </head>
 <body>
-  <header><h1>🔧 Admin — Wallapop Alertas</h1></header>
-  <nav class="nav"><a href="/">← Volver a la web</a></nav>
+  <header style="display:flex;align-items:center;gap:12px;flex-wrap:nowrap;">
+    <h1 style="flex:1;margin:0;">🔧 {{adminTitle}}</h1>
+    {{langSelector}}
+  </header>
+  <nav class="nav"><a href="/">{{adminBackLink}}</a></nav>
 
   <!-- ESTADÍSTICAS -->
   <div class="stats">
-    <div class="stat"><div class="num">{{stats.totalActive}}</div><div class="lbl">Alertas activas</div></div>
-    <div class="stat"><div class="num">{{stats.totalAll}}</div><div class="lbl">Total alertas</div></div>
-    <div class="stat"><div class="num">{{stats.totalUsers}}</div><div class="lbl">Usuarios</div></div>
-    <div class="stat"><div class="num">{{stats.totalEmailsSent}}</div><div class="lbl">Emails enviados</div></div>
+    <div class="stat"><div class="num">{{stats.totalActive}}</div><div class="lbl">{{statActive}}</div></div>
+    <div class="stat"><div class="num">{{stats.totalAll}}</div><div class="lbl">{{statTotal}}</div></div>
+    <div class="stat"><div class="num">{{stats.totalUsers}}</div><div class="lbl">{{statUsers}}</div></div>
+    <div class="stat"><div class="num">{{stats.totalEmailsSent}}</div><div class="lbl">{{statEmailsSent}}</div></div>
     <div class="stat" style="{{stats.failedBorder}}">
       <div class="num" style="color:{{stats.failedColor}}">{{stats.totalEmailsFailed}}</div>
-      <div class="lbl">Emails fallidos</div>
+      <div class="lbl">{{statEmailsFailed}}</div>
     </div>
     <div class="stat">
       <div class="num" style="color:{{stats.successRateColor}}">{{stats.successRate}}%</div>
-      <div class="lbl">Tasa de éxito</div>
+      <div class="lbl">{{statSuccessRate}}</div>
     </div>
-    <div class="stat"><div class="num">{{stats.totalDeleted}}</div><div class="lbl">Eliminadas ({{stats.deletedPct}}%)</div></div>
-    <div class="stat"><div class="num">{{stats.totalSeen}}</div><div class="lbl">Productos vistos</div></div>
+    <div class="stat"><div class="num">{{stats.totalDeleted}}</div><div class="lbl">{{statDeleted}} ({{stats.deletedPct}}%)</div></div>
+    <div class="stat"><div class="num">{{stats.totalSeen}}</div><div class="lbl">{{statSeen}}</div></div>
     <div class="stat" style="{{stats.pendingBorder}}">
       <div class="num" style="color:{{stats.pendingColor}}">{{stats.totalPending}}</div>
-      <div class="lbl">⏳ Pendientes verificar</div>
+      <div class="lbl">{{statPending}}</div>
     </div>
   </div>
 
   <!-- USUARIOS -->
   <div class="section">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-      <h2 style="margin-bottom:0;">📧 Usuarios y límites</h2>
+      <h2 style="margin-bottom:0;">{{usersTitle}}</h2>
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-left:4px;">
         <div style="position:relative;width:38px;height:21px;">
           <input type="checkbox" id="filter-users-active" onchange="applyUsersFilter()" style="opacity:0;width:0;height:0;position:absolute;" />
           <span id="users-toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
           <span id="users-toggle-thumb" style="position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
         </div>
-        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Con alertas activas</span>
+        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">{{usersActiveToggle}}</span>
       </label>
     </div>
 
@@ -114,7 +87,12 @@
     <!-- Tabla (escritorio) -->
     <div class="table-scroll">
       <table class="desktop-table users-desktop-table">
-        <thead><tr><th>Email</th><th>Alertas activas / total</th><th>Emails enviados</th><th>Límite</th></tr></thead>
+        <thead><tr>
+          <th>{{colEmail}}</th>
+          <th>{{usersColAlerts}}</th>
+          <th>{{usersColSent}}</th>
+          <th>{{usersColLimit}}</th>
+        </tr></thead>
         <tbody id="users-tbody">
           {{usersRows}}
         </tbody>
@@ -126,27 +104,27 @@
   <!-- ALERTAS -->
   <div class="section">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
-      <h2 style="margin-bottom:0;">🔔 Alertas</h2>
+      <h2 style="margin-bottom:0;">{{alertsTitle}}</h2>
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-left:4px;">
         <div style="position:relative;width:38px;height:21px;">
           <input type="checkbox" id="filter-active-only" onchange="applyFilters()" style="opacity:0;width:0;height:0;position:absolute;" />
           <span id="toggle-track" style="position:absolute;inset:0;border-radius:20px;background:#e5e7eb;transition:background .2s;"></span>
           <span id="toggle-thumb" style="position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
         </div>
-        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Solo activas</span>
+        <span style="font-size:12px;color:#6b7280;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">{{alertsActiveToggle}}</span>
       </label>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-      <input id="filter-search" type="text" placeholder="🔎 Buscar por palabras, email..." oninput="applyFilters()"
-        style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid rgba({{shadowRgb}},0.3);border-radius:8px;font-size:13px;" />
+      <input id="filter-search" type="text" placeholder="{{alertsSearchPh}}" oninput="applyFilters()"
+        style="flex:1;min-width:180px;padding:8px 12px;border-radius:8px;font-size:13px;border:1.5px solid #e5e7eb;" />
       <select id="filter-freq" onchange="applyFilters()"
-        style="padding:8px 10px;border:1.5px solid rgba({{shadowRgb}},0.3);border-radius:8px;font-size:13px;background:#fff;">
-        <option value="">Cualquier frecuencia</option>
-        <option value="immediate">⚡ Inmediato</option>
-        <option value="daily">📅 Diario</option>
-        <option value="weekly">📆 Semanal</option>
+        style="padding:8px 10px;border-radius:8px;font-size:13px;background:#fff;border:1.5px solid #e5e7eb;">
+        <option value="">{{alertsFreqAny}}</option>
+        <option value="immediate">{{alertsFreqImm}}</option>
+        <option value="daily">{{alertsFreqDaily}}</option>
+        <option value="weekly">{{alertsFreqWeekly}}</option>
       </select>
-      <button onclick="resetFilters()" style="padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;color:#6b7280;">✕ Limpiar</button>
+      <button onclick="resetFilters()" style="padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;color:#6b7280;">{{alertsClear}}</button>
       <span id="filter-count" style="font-size:12px;color:#9ca3af;white-space:nowrap;min-width:120px;display:inline-block;text-align:right;"></span>
     </div>
 
@@ -159,16 +137,17 @@
     <div class="table-scroll">
       <table class="desktop-table alerts-desktop-table" id="subs-table">
         <thead><tr>
-          <th style="width:90px;min-width:90px;">Estado</th>
-          <th>Búsqueda</th>
-          <th>Email</th>
-          <th>Precio</th>
-          <th>Categoría</th>
-          <th>Frecuencia</th>
-          <th>Creada</th>
-          <th>Último run</th>
-          <th>Emails</th>
-          <th>Acción</th>
+          <th style="width:90px;min-width:90px;">{{colStatus}}</th>
+          <th>{{colSearch}}</th>
+          <th>{{colEmail}}</th>
+          <th>{{colPrice}}</th>
+          <th>{{colCategory}}</th>
+          <th>{{colFrequency}}</th>
+          <th>{{colWebhook}}</th>
+          <th>{{colCreated}}</th>
+          <th>{{colLastRun}}</th>
+          <th>{{colEmails}}</th>
+          <th>{{colAction}}</th>
         </tr></thead>
         <tbody id="subs-tbody">
           {{subsRows}}
@@ -179,7 +158,6 @@
   </div>
 
   <script>
-    // Token CSRF para formularios del admin
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('form').forEach(f => {
         if (!f.querySelector('input[name="_csrf"]')) {
@@ -234,9 +212,10 @@
       const start = (currentPage - 1) * PAGE_SIZE;
       allRows.forEach(r => r.style.display = 'none');
       filteredRows.slice(start, start + PAGE_SIZE).forEach(r => r.style.display = '');
-      document.getElementById('filter-count').textContent = total === allRows.length
+      const countEl = document.getElementById('filter-count');
+      if (countEl) countEl.textContent = total === allRows.length
         ? total + ' alertas'
-        : total + ' de ' + allRows.length + ' alertas';
+        : total + ' / ' + allRows.length;
       renderPagination(total, 'pagination', p => { currentPage = p; renderPage(); });
     }
     function renderPagination(total, elId, onPage) {

@@ -1,305 +1,78 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{lang}}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alertas de segunda mano — Recibe avisos de nuevos productos</title>
-  <meta name="description" content="Crea alertas gratuitas y recibe un email cuando aparezcan nuevos productos de segunda mano que cumplan tus criterios." />
+  <title>{{page_title}}</title>
+  <meta name="description" content="{{page_description}}" />
+  <link rel="stylesheet" href="/index.css" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --primary: #f97316;
-      --primary-dark: #ea6a0a;
-      --bg: #fff7f0;
-      --card: #ffffff;
-      --text: #1a1a2e;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --error: #ef4444;
-      --radius: 12px;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 0 16px 60px;
-    }
-
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      text-align: center;
-      padding: 28px 20px 26px;
-      margin: 0 -16px 0;
-      clip-path: ellipse(100% 100% at 50% 0%);
-    }
-    header h1 {
-      font-size: clamp(22px, 5vw, 32px);
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
-      margin-bottom: 10px;
-    }
-    header p {
-      font-size: 15px;
-      color: rgba(255,255,255,0.88);
-      max-width: 400px;
+    /* ── Language selector ────────────────────────────────────────────────── */
+    .lang-selector {
+      display: flex;
+      justify-content: flex-end;
+      padding: 6px 16px 0;
+      max-width: 560px;
       margin: 0 auto;
-      line-height: 1.5;
     }
-
-    /* ── Features strip ── */
-    .features {
-      display: flex;
-      justify-content: center;
-      gap: 24px;
-      flex-wrap: wrap;
-      margin: 20px auto 28px;
-      max-width: 640px;
-    }
-    .feature {
+    .lang-select {
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
       background: #fff;
-      border-radius: 50px;
-      padding: 7px 18px;
-      font-size: 13px;
-      color: var(--muted);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* ── Card ── */
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 32px 28px;
-      max-width: 520px;
-      margin: 0 auto;
-      box-shadow: 0 4px 24px rgba(249,115,22,0.12);
-      border: 1px solid rgba(249,115,22,0.1);
-    }
-
-    .card h2 {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* ── Form ── */
-    .form-group { margin-bottom: 18px; }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-    label .hint {
-      font-weight: 400;
-      color: var(--muted);
-      margin-left: 4px;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 15px;
-      color: var(--text);
-      background: #fff;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-    input:focus, select:focus {
+      color: #6b7280;
+      cursor: pointer;
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+      transition: border-color .15s;
     }
-    input::placeholder { color: #b0b8c1; }
-
-    /* Restaurar apariencia nativa del checkbox */
-    input[type="checkbox"] {
-      appearance: checkbox;
-      -webkit-appearance: checkbox;
-      width: 18px;
-      height: 18px;
-      padding: 0;
-      border: none;
-      box-shadow: none;
-      cursor: pointer;
-      flex-shrink: 0;
-      accent-color: var(--primary);
-    }
-    input[type="checkbox"]:focus {
-      box-shadow: none;
-      border: none;
-    }
-
-    .price-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .select-wrapper {
-      position: relative;
-    }
-    .select-wrapper::after {
-      content: '▾';
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    /* ── Submit button ── */
-    .btn-submit {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      margin-top: 8px;
-      letter-spacing: 0.2px;
-    }
-    .btn-submit:hover { opacity: 0.92; }
-    .btn-submit:active { transform: scale(0.98); }
-    .btn-submit:disabled { opacity: 0.6; cursor: wait; }
-
-    /* ── Error message ── */
-    .error-msg {
-      display: none;
-      color: var(--error);
-      font-size: 13px;
-      margin-top: 12px;
-      padding: 10px 14px;
-      background: #fef2f2;
-      border-radius: 7px;
-      border: 1px solid #fecaca;
-    }
-
-    /* ── Success state ── */
-    .success-banner {
-      display: none;
-      text-align: center;
-      padding: 24px 0 8px;
-    }
-    .success-banner .icon { font-size: 48px; margin-bottom: 12px; }
-    .success-banner h3 { font-size: 20px; font-weight: 700; color: var(--primary-dark); margin-bottom: 8px; }
-    .success-banner p { font-size: 14px; color: var(--muted); line-height: 1.5; }
-    .success-banner .back-link {
-      display: inline-block;
-      margin-top: 16px;
-      color: var(--primary);
-      font-size: 14px;
-      text-decoration: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .success-banner .back-link:hover { text-decoration: underline; }
-
-    /* ── Info note ── */
-    .note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 16px;
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    /* ── How it works ── */
-    .how {
-      max-width: 520px;
-      margin: 32px auto 0;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
-    }
-    .how-step {
-      background: #fff;
-      border-radius: var(--radius);
-      padding: 20px 16px;
-      text-align: center;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    }
-    .how-step .step-icon { font-size: 28px; margin-bottom: 8px; }
-    .how-step h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-    .how-step p { font-size: 12px; color: var(--muted); line-height: 1.4; }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    footer a { color: var(--primary); text-decoration: none; }
-
-    @media (max-width: 480px) {
-      .card { padding: 24px 18px; }
-      .price-row { grid-template-columns: 1fr; }
-    }
+    .lang-select:hover, .lang-select:focus { border-color: var(--primary, #13c1ac); color: #374151; }
   </style>
 </head>
 <body>
 
+  <!-- Language selector -->
+  {{langSelector}}
+
   <!-- Header -->
   <header>
-    <h1>🔔 Alertas de Segunda Mano</h1>
-    <p>Recibe un email cuando aparezcan nuevos productos <b>sin reserva</b> que cumplan tu búsqueda</p>
+    <h1>{{header_title}}</h1>
+    <p>{{header_subtitle}}</p>
   </header>
 
   <!-- Features strip -->
   <div class="features">
-    <div class="feature">📧 Email al instante</div>
-    <div class="feature">✨ Sin registro</div>
-    <div class="feature">🗑️ Cancela cuando quieras</div>
+    <div class="feature">{{feature_email}}</div>
+    <div class="feature">{{feature_no_reg}}</div>
+    <div class="feature">{{feature_cancel}}</div>
   </div>
 
   <!-- Form card -->
   <div class="card">
-    <h2>📬 Crear alerta</h2>
+    <h2>{{form_title}}</h2>
 
     <div id="form-container">
       <form id="alert-form" novalidate>
 
         <div class="form-group">
-          <label for="keywords">¿Qué buscas? <span class="hint">(requerido)</span></label>
+          <label for="keywords">{{label_keywords}} <span class="hint">{{hint_required}}</span></label>
           <input
             type="text"
             id="keywords"
             name="keywords"
-            placeholder="ej: iphone 13, ps5, bicicleta..."
+            placeholder="{{placeholder_keywords}}"
             required
             autocomplete="off"
           />
         </div>
 
         <div class="form-group">
-          <label for="email">Tu email <span class="hint">(requerido)</span></label>
+          <label for="email">{{label_email}} <span class="hint">{{hint_required}}</span></label>
           <input
             type="email"
             id="email"
             name="email"
-            placeholder="tuemail@ejemplo.com"
+            placeholder="{{placeholder_email}}"
             required
             autocomplete="email"
           />
@@ -307,45 +80,31 @@
 
         <div class="form-group price-row">
           <div>
-            <label for="min_price">Precio mínimo <span class="hint">(€)</span></label>
+            <label for="min_price">{{label_min_price}} <span class="hint">{{hint_currency}}</span></label>
             <input type="number" id="min_price" name="min_price" placeholder="0" min="0" step="1" />
           </div>
           <div>
-            <label for="max_price">Precio máximo <span class="hint">(€)</span></label>
-            <input type="number" id="max_price" name="max_price" placeholder="sin límite" min="0" step="1" />
+            <label for="max_price">{{label_max_price}} <span class="hint">{{hint_currency}}</span></label>
+            <input type="number" id="max_price" name="max_price" placeholder="{{placeholder_max_price}}" min="0" step="1" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="category_id">Categoría <span class="hint">(opcional)</span></label>
+          <label for="category_id">{{label_category}} <span class="hint">{{hint_optional}}</span></label>
           <div class="select-wrapper">
             <select id="category_id" name="category_id">
-              <option value="">— Todas las categorías —</option>
-              <option value="12465">Tecnología</option>
-              <option value="12579">Móviles y telefonía</option>
-              <option value="15000">Informática</option>
-              <option value="12545">Moda y accesorios</option>
-              <option value="12543">Motor</option>
-              <option value="12463">Deporte y ocio</option>
-              <option value="12459">Hogar y jardín</option>
-              <option value="12467">Televisión y audio</option>
-              <option value="12461">Consolas y videojuegos</option>
-              <option value="12473">Cámaras y fotografía</option>
-              <option value="14000">Coleccionismo</option>
-              <option value="12449">Libros y música</option>
-              <option value="12469">Bebés y niños</option>
-              <option value="12471">Otros</option>
+              {{categoryOptions}}
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="email_frequency">Frecuencia de emails <span class="hint">(opcional)</span></label>
+          <label for="email_frequency">{{label_frequency}} <span class="hint">{{hint_optional}}</span></label>
           <div class="select-wrapper">
             <select id="email_frequency" name="email_frequency">
-              <option value="immediate">⚡ Inmediato — en cuanto aparezca algo</option>
-              <option value="daily">📅 Resumen diario — una vez al día</option>
-              <option value="weekly">📆 Resumen semanal — una vez a la semana</option>
+              <option value="immediate">{{option_immediate}}</option>
+              <option value="daily">{{option_daily}}</option>
+              <option value="weekly">{{option_weekly}}</option>
             </select>
           </div>
         </div>
@@ -356,31 +115,54 @@
             id="shipping_only"
             name="shipping_only"
             value="true"
-            style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;"
           />
           <label for="shipping_only" style="margin:0;font-size:14px;cursor:pointer;display:inline;font-weight:500;">
-            🚚 Solo productos <strong>con envío</strong>
+            {{label_shipping}}
           </label>
         </div>
+
+        <!-- ── Integraciones (colapsable) ── -->
+        <details class="form-group" style="margin-bottom:18px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+          <summary style="padding:11px 14px;font-size:13px;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;background:#fafafa;user-select:none;">
+            <span>{{webhook_label}} <span style="font-weight:400;color:var(--muted);">{{webhook_subtitle}}</span></span>
+            <span style="font-size:11px;color:var(--muted);">▾</span>
+          </summary>
+          <div style="padding:12px 14px;background:#fff;border-top:1px solid var(--border);">
+            <label for="webhook_url" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">
+              {{webhook_url_label}} <span style="font-weight:400;color:var(--muted);">{{webhook_url_hint}}</span>
+            </label>
+            <input
+              type="url"
+              id="webhook_url"
+              name="webhook_url"
+              placeholder="{{webhook_placeholder}}"
+              autocomplete="off"
+              style="margin-bottom:8px;"
+            />
+            <p style="font-size:12px;color:var(--muted);line-height:1.5;margin:0;">
+              {{webhook_description}}
+            </p>
+          </div>
+        </details>
 
         <div class="error-msg" id="error-msg"></div>
 
         <button type="submit" class="btn-submit" id="submit-btn">
-          🔔 Crear alerta gratuita
+          {{btn_submit}}
         </button>
       </form>
 
       <p class="note">
-        Sin registro · Sin spam · Cancela con un clic desde cualquier email
+        {{note_no_spam}}
       </p>
     </div>
 
     <!-- Success state -->
     <div class="success-banner" id="success-banner">
       <div class="icon">🎉</div>
-      <h3>¡Alerta creada!</h3>
-      <p id="success-msg">Te avisaremos por email cuando aparezcan nuevos productos.</p>
-      <a class="back-link" onclick="showForm()">← Crear otra alerta</a>
+      <h3>{{success_title}}</h3>
+      <p id="success-msg"></p>
+      <a class="back-link" onclick="showForm()">{{back_link}}</a>
     </div>
   </div>
 
@@ -399,53 +181,67 @@
   <div class="how">
     <div class="how-step">
       <div class="step-icon">✍️</div>
-      <h4>1. Crea tu alerta</h4>
-      <p>Pon tus palabras clave, precio y categoría</p>
+      <h4>{{how_step1_title}}</h4>
+      <p>{{how_step1_desc}}</p>
     </div>
     <div class="how-step">
       <div class="step-icon">🤖</div>
-      <h4>2. El agente busca</h4>
-      <p>Monitoriza los anuncios cada pocos minutos</p>
+      <h4>{{how_step2_title}}</h4>
+      <p>{{how_step2_desc}}</p>
     </div>
     <div class="how-step">
       <div class="step-icon">📧</div>
-      <h4>3. Recibe el email</h4>
-      <p>Te avisamos al instante, sin spam</p>
+      <h4>{{how_step3_title}}</h4>
+      <p>{{how_step3_desc}}</p>
     </div>
   </div>
 
   <footer>
-    <p>Hecho con ❤️ · <a href="https://github.com/enrimr/used-items-alert-agent" target="_blank">GitHub</a> · MIT License</p>
+    <p>{{footer_text}}</p>
   </footer>
 
   <script>
-    const form = document.getElementById('alert-form');
-    const submitBtn = document.getElementById('submit-btn');
-    const errorMsg = document.getElementById('error-msg');
+    // i18n strings passed from server
+    const I18N = {
+      btn_submit:          {{js_btn_submit}},
+      btn_creating:        {{js_btn_creating}},
+      success_title:       {{js_success_title}},
+      success_msg:         {{js_success_msg}},
+      back_link:           {{js_back_link}},
+      error_keywords_short:{{js_error_keywords_short}},
+      error_email_invalid: {{js_error_email_invalid}},
+      error_price_range:   {{js_error_price_range}},
+      error_generic:       {{js_error_generic}},
+      error_connection:    {{js_error_connection}},
+    };
+
+    const form          = document.getElementById('alert-form');
+    const submitBtn     = document.getElementById('submit-btn');
+    const errorMsg      = document.getElementById('error-msg');
     const successBanner = document.getElementById('success-banner');
     const formContainer = document.getElementById('form-container');
-    const successMsgEl = document.getElementById('success-msg');
+    const successMsgEl  = document.getElementById('success-msg');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.style.display = 'none';
       submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ Creando alerta...';
+      submitBtn.textContent = I18N.btn_creating;
 
       const formData = new FormData(form);
       const body = Object.fromEntries(formData.entries());
 
       // Client-side validation
       if (!body.keywords || body.keywords.trim().length < 2) {
-        showError('Por favor escribe qué estás buscando');
+        showError(I18N.error_keywords_short);
         return;
       }
       if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-        showError('Por favor introduce un email válido');
+        showError(I18N.error_email_invalid);
         return;
       }
       if (body.min_price && body.max_price && parseFloat(body.min_price) > parseFloat(body.max_price)) {
-        showError('El precio mínimo no puede ser mayor que el máximo');
+        showError(I18N.error_price_range);
         return;
       }
 
@@ -463,17 +259,20 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
-          const email = body.email;
+          const email    = body.email;
           const keywords = body.keywords;
-          successMsgEl.innerHTML = `Te avisaremos a <strong>${email}</strong> cuando aparezcan nuevos productos para "<strong>${escapeHtml(keywords)}</strong>".<br><br>Comprueba tu bandeja de entrada — te hemos enviado un email de confirmación.`;
+          const msg = I18N.success_msg
+            .replace('{email}', `<strong>${email}</strong>`)
+            .replace('{keywords}', `<strong>${escapeHtml(keywords)}</strong>`);
+          successMsgEl.innerHTML = msg;
           formContainer.style.display = 'none';
           successBanner.style.display = 'block';
           form.reset();
         } else {
-          showError(data.error || 'Error al crear la alerta. Inténtalo de nuevo.');
+          showError(data.error || I18N.error_generic);
         }
       } catch (err) {
-        showError('Error de conexión. Inténtalo de nuevo.');
+        showError(I18N.error_connection);
       }
     });
 
@@ -481,15 +280,14 @@
       errorMsg.textContent = msg;
       errorMsg.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.textContent = '🔔 Crear alerta gratuita';
+      submitBtn.textContent = I18N.btn_submit;
     }
 
     function showForm() {
       formContainer.style.display = 'block';
       successBanner.style.display = 'none';
-      // Reset submit button state
       submitBtn.disabled = false;
-      submitBtn.textContent = '🔔 Crear alerta gratuita';
+      submitBtn.textContent = I18N.btn_submit;
       errorMsg.style.display = 'none';
     }
 

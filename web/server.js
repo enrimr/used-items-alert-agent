@@ -69,6 +69,10 @@ if (csrfEnabled) {
 // Static files (CSS, JS, imágenes). index: false para que GET / pase por el router
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
+// ─── i18n ─────────────────────────────────────────────────────────────────
+const { i18nMiddleware } = require('./i18n');
+app.use(i18nMiddleware);
+
 // ─── Routers ──────────────────────────────────────────────────────────────
 app.use('/', require('./routes/subscribe'));
 app.use('/admin', require('./routes/admin'));

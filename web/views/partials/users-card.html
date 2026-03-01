@@ -4,22 +4,22 @@
     <span class="card-value" style="font-size:12px">{{email}}</span>
   </div>
   <div class="card-row">
-    <span class="card-label">Alertas</span>
+    <span class="card-label">{{cardLabelAlerts}}</span>
     <span class="card-value">
-      <strong style="color:{{primary}}">{{activeAlerts}}</strong> activas de {{totalAlerts}}
+      <strong style="color:{{primary}}">{{activeAlerts}}</strong> {{activeOfLabel}} {{totalAlerts}}
     </span>
   </div>
   <div class="card-row">
-    <span class="card-label">Emails env.</span>
+    <span class="card-label">{{cardLabelEmailsSent}}</span>
     <span class="card-value">{{totalEmailsSent}}</span>
   </div>
   <div class="card-row">
-    <span class="card-label">Límite máx.</span>
+    <span class="card-label">{{cardLabelLimit}}</span>
     <span class="card-value">
       <form method="POST" action="/admin/set-limit" class="limit-form">
         <input type="hidden" name="email" value="{{email}}" />
         <input type="number" name="max_alerts" value="{{maxAlerts}}" min="0" max="100" />
-        <button type="submit" class="btn-save">Guardar</button>
+        <button type="submit" class="btn-save">{{saveLabel}}</button>
       </form>
     </span>
   </div>

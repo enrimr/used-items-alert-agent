@@ -3,6 +3,8 @@
  */
 
 const { renderTemplate } = require('./views/render');
+const { buildLangSelector } = require('./i18n');
+const { getThemeVars } = require('./theme');
 
 /**
  * Escapa caracteres HTML especiales para evitar XSS.
@@ -22,13 +24,19 @@ function escapeHtml(str) {
  * @param {string} title       - Título de la página (se escapa automáticamente)
  * @param {string} message     - Cuerpo del mensaje (admite HTML inline seguro)
  * @param {string} accentColor - Color de la barra superior (hex, p.ej. '#f97316')
+ * @param {Object} [req]       - Request de Express (para i18n y selector de idioma)
  * @returns {string}           - HTML completo listo para enviar con res.send()
  */
-function renderSimplePage(title, message, accentColor = '#f97316') {
+function renderSimplePage(title, message, accentColor = '#f97316', req = null) {
+  const lang     = (req && req.lang)  || 'es';
+  const selector = buildLangSelector(lang, (req && req.url) || '/');
+
   return renderTemplate('simple-page', {
+    lang,
     title:       escapeHtml(title),
     message,                          // el llamador controla si hay HTML inline
     accentColor,
+    langSelector: selector,
   });
 }
 

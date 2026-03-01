@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{lang}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>✅ ¡Alerta creada! — Alertas</title>
+  <title>{{title}} — Alertas</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -11,6 +11,7 @@
       background: #f5f7fa;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -44,17 +45,35 @@
       font-size: 15px;
     }
     .cta:hover { opacity: 0.9; }
+    /* ── Language selector ────────────────────────────────────────────────── */
+    .lang-selector {
+      display: flex;
+      justify-content: flex-end;
+      padding: 6px 0 0;
+      max-width: 480px;
+      width: 100%;
+      margin-bottom: 6px;
+    }
+    .lang-select {
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #6b7280;
+      cursor: pointer;
+      outline: none;
+    }
+    .lang-select:hover, .lang-select:focus { border-color: {{primary}}; color: #374151; }
   </style>
 </head>
 <body>
+  {{langSelector}}
   <div class="card">
     <div class="bar"></div>
-    <h1>✅ ¡Alerta creada!</h1>
-    <p>
-      Recibirás un email en <strong>{{email}}</strong> cuando aparezcan
-      nuevos productos para "<strong>{{keywords}}</strong>".
-    </p>
-    <a href="/" class="cta">Crear otra alerta</a>
+    <h1>{{title}}</h1>
+    <p>{{message}}</p>
+    <a href="/" class="cta">{{cta}}</a>
   </div>
 </body>
 </html>

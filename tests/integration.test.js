@@ -161,7 +161,7 @@ describe('Flujo 1: Ciclo completo de alerta', () => {
 
     // Esperar que el fire-and-forget dispare el email
     await new Promise(r => setTimeout(r, 100));
-    expect(mailer.sendConfirmationEmail).toHaveBeenCalledWith('usuario@test.com', expect.objectContaining({ keywords: 'ps5' }));
+    expect(mailer.sendConfirmationEmail).toHaveBeenCalledWith('usuario@test.com', expect.objectContaining({ keywords: 'ps5' }), expect.any(String));
   });
 
   test('1.2 Worker detecta nuevos productos y envía alerta', async () => {
@@ -237,7 +237,8 @@ describe('Flujo 2: Verificación de email', () => {
     await new Promise(r => setTimeout(r, 100));
     expect(mailer.sendVerificationEmail).toHaveBeenCalledWith(
       'verificar@test.com',
-      expect.objectContaining({ verification_token: verificationToken })
+      expect.objectContaining({ verification_token: verificationToken }),
+      expect.any(String)
     );
     expect(mailer.sendConfirmationEmail).not.toHaveBeenCalled();
   });
