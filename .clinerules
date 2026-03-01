@@ -1,0 +1,229 @@
+# .clinerules — Used Items Alert Agent
+# Reglas de desarrollo aplicadas por Cline en este proyecto.
+# Reutilizables en otros proyectos Node.js / Express con i18n y tests Jest.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. SEPARACIÓN DE RESPONSABILIDADES EN FRONTEND
+# ─────────────────────────────────────────────────────────────────────────────
+- HTML, CSS y JS del frontend deben estar SIEMPRE en ficheros separados.
+  - HTML en `web/views/` o `web/public/*.html`
+  - CSS en `web/public/*.css`
+  - JS del cliente en `web/public/*.js`
+- Nunca incluir bloques `<style>` o `<script>` con lógica de negocio incrustados
+  en el HTML. Los `<script>` con pequeños event-listeners de UI (< 10 líneas)
+  pueden permanecer en el HTML si no contienen lógica de dominio.
+- Las plantillas de email (`web/views/emails/`) son la única excepción: pueden
+  incluir estilos inline necesarios para compatibilidad con clientes de email.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. GIT — COMMITS AUTOMÁTICOS TRAS CADA CAMBIO
+# ─────────────────────────────────────────────────────────────────────────────
+- Antes de empezar cualquier tarea, verificar que existe repositorio git.
+  Si no existe, inicializarlo: `git init && git add -A && git commit -m "chore: init repo"`.
+- Después de CADA cambio funcional en el código, ejecutar:
+    git add -A && git commit -m "<tipo>(<scope>): <descripción corta>"
+- Tipos de commit permitidos (Conventional Commits):
+    feat, fix, refactor, test, docs, chore, style, perf, ci
+- Ejemplos:
+    feat(i18n): add French translations
+    fix(mailer): handle missing RESEND_API_KEY gracefully
+    test(webhook): add retry logic coverage
+    docs(README): update deployment section
+- No hacer commits con `git add .` si hay ficheros sensibles (.env, *.key).
+  Verificar siempre .gitignore antes del primer commit.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. DOCUMENTACIÓN — ACTUALIZAR EN CADA CAMBIO
+# ─────────────────────────────────────────────────────────────────────────────
+- Cuando se añade/modifica/elimina cualquier funcionalidad, revisar y actualizar:
+    [ ] README.md — si afecta a características, estructura o inicio rápido
+    [ ] docs/CONFIGURATION.md — si se añade/modifica una variable de entorno
+    [ ] docs/DEVELOPMENT.md — si cambia la arquitectura, tests o convenciones
+    [ ] docs/DEPLOYMENT.md — si cambia algo relacionado con el despliegue
+    [ ] docs/SECURITY.md — si cambia algo de seguridad, autenticación o CSRF
+    [ ] docs/WEBHOOKS.md — si cambia el contrato del payload de webhooks
+- Si se añade una nueva variable de entorno, también actualizar `.env.example`
+  con la variable, su descripción y su valor por defecto.
+- Los ficheros Markdown usan encabezados en español, excepto el código y los
+  nombres técnicos que permanecen en inglés.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. BDD — BEHAVIOR DRIVEN DEVELOPMENT
+# ─────────────────────────────────────────────────────────────────────────────
+- ANTES de implementar una funcionalidad, escribir los tests que describen
+  el comportamiento esperado (ciclo red → green → refactor).
+- Los tests deben estar organizados con `describe` / `test` usando lenguaje
+  natural que exprese el comportamiento:
+    describe('Flujo X: <nombre del flujo>', () => {
+      test('X.Y <condición> → <resultado esperado>', ...)
+    })
+- Cada nueva funcionalidad debe tener al menos:
+    - Un test del camino feliz (happy path)
+    - Un test de caso límite o error (edge case / sad path)
+- Los mocks de dependencias externas (mailer, scraper, DB) se definen con
+  `jest.mock()` al principio del fichero de test, antes de los imports reales.
+- Para tests de HTTP usar `supertest` con la app Express directamente,
+  sin levantar un servidor real.
+- Los tests de BD usan siempre SQLite en memoria (`:memory:`) o un fichero
+  temporal en `os.tmpdir()` para no contaminar datos de desarrollo.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. COBERTURA DE TESTS — MÍNIMO 80%
+# ─────────────────────────────────────────────────────────────────────────────
+- La cobertura de código debe mantenerse en ≥ 80% en:
+    Statements, Branches, Functions, Lines
+- Antes de hacer commit de código nuevo:
+    npm run test:coverage
+  y verificar que la cobertura no baja del umbral.
+- Los ficheros excluidos de cobertura (Puppeteer, entry-points) están definidos
+  en `package.json → jest.coveragePathIgnorePatterns`. No añadir nuevos módulos
+  a esa lista sin justificación explícita en el commit message.
+- Si un PR/cambio baja la cobertura por debajo del 80%, añadir tests antes de
+  hacer commit.
+- Para añadir el threshold automático a Jest, usar en package.json:
+    "coverageThreshold": { "global": { "statements": 80, "branches": 80, "functions": 80, "lines": 80 } }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. INTERNACIONALIZACIÓN (i18n) — TODOS LOS IDIOMAS
+# ─────────────────────────────────────────────────────────────────────────────
+- Idiomas soportados: es (defecto), en, it, ca.
+- Cada vez que se añade una nueva string visible al usuario:
+    1. Añadir la clave en web/i18n/es.js (idioma base)
+    2. Añadir la traducción en web/i18n/en.js
+    3. Añadir la traducción en web/i18n/it.js
+    4. Añadir la traducción en web/i18n/ca.js
+- NUNCA dejar cadenas de texto hardcodeadas en HTML, rutas o plantillas.
+  Usar siempre `t('clave')` o el token `{{t_clave}}` en plantillas HTML.
+- Las claves siguen el patrón de namespacing por área:
+    page_*, label_*, btn_*, error_*, api_*, email_*, admin_*, cat_*
+- Si se añade un nuevo idioma, actualizar LOCALES en web/i18n/index.js,
+  getNativeName() y buildLangSelector() con la bandera correspondiente.
+- Los emails también deben estar traducidos. Las claves email_* deben existir
+  en todos los ficheros de idioma.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. TAMAÑO DE FICHEROS — REFACTORIZAR FICHEROS LARGOS
+# ─────────────────────────────────────────────────────────────────────────────
+- Un fichero JS no debe superar las 300 líneas. Si se supera:
+    - Extraer funciones/helpers a un módulo separado
+    - Separar responsabilidades en submódulos (como web/db/ con un módulo por área)
+- Un fichero HTML de plantilla no debe superar las 200 líneas. Si se supera:
+    - Extraer secciones repetidas a web/views/partials/
+    - Usar renderPartial() del motor de plantillas
+- Los ficheros de rutas Express deben contener solo el enrutamiento y la
+  validación de entrada. La lógica de negocio va en módulos de servicio/db.
+- Si se detecta código duplicado entre dos módulos, extraerlo a src/utils.js
+  o a un helper específico.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. MÓDULOS — COMMONJS Y SEPARACIÓN INTERNALS/API PÚBLICA
+# ─────────────────────────────────────────────────────────────────────────────
+- Este proyecto usa CommonJS (`require` / `module.exports`). No usar ES modules.
+- Cada módulo exporta solo lo que necesitan los consumidores externos.
+  Las funciones de implementación son privadas (no exportadas).
+- Estructura estándar de módulo:
+    // ── Internals ────────────────────────────────
+    function internalHelper() { ... }
+
+    // ── API pública ──────────────────────────────
+    function publicFunction() { ... }
+
+    module.exports = { publicFunction };
+- Los "magic numbers" van en src/constants.js, nunca hardcodeados.
+- Las variables de entorno se leen con `process.env.VAR || 'default'`.
+  Nunca asumir que una variable de entorno estará definida sin fallback.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. GESTIÓN DE ERRORES
+# ─────────────────────────────────────────────────────────────────────────────
+- En rutas Express: responder siempre con JSON `{ error: string }` y código
+  HTTP apropiado (400, 401, 404, 429, 500). Nunca dejar un error sin respuesta.
+- En el worker: capturar errores por suscripción con try/catch individual.
+  Un error en una suscripción NO debe detener el ciclo completo.
+- En el mailer: devolver `false` en caso de fallo, no lanzar excepciones.
+- En webhooks: devolver `{ ok: false, error: string }` sin propagar.
+- Los errores críticos (fallos consecutivos del scraper ≥ umbral) deben
+  notificarse al admin via sendAdminAlert().
+- Prefijos de log estandarizados:
+    ✓  → Éxito     ✗  → Error     🆕 → Nuevos items
+    📧 → Email     ❌ → Fallo email  ⚠️ → Advertencia
+    🔗 → Webhook   🚨 → Crítico    ⏸  → Omitido
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. BASE DE DATOS — MIGRACIONES IDEMPOTENTES
+# ─────────────────────────────────────────────────────────────────────────────
+- SQLite via better-sqlite3 (síncrono). No usar async/await con la BD.
+- Toda nueva columna se añade con una migración idempotente en
+  web/db/connection.js → initSchema():
+    try { db.exec('ALTER TABLE t ADD COLUMN nueva TEXT DEFAULT NULL'); }
+    catch (e) { /* ya existe */ }
+- Los índices se crean con `CREATE INDEX IF NOT EXISTS`.
+- La BD de test usa siempre `:memory:` o un fichero en os.tmpdir() con
+  un timestamp único para evitar colisiones entre tests paralelos.
+- La capa de acceso a datos (web/db/) se organiza por responsabilidad:
+    connection.js, subscriptions.js, seen-items.js, digest.js, stats.js
+  web/db.js re-exporta todo desde un único punto de entrada.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 11. SEGURIDAD
+# ─────────────────────────────────────────────────────────────────────────────
+- CSRF activo en todos los endpoints POST (csrf-csrf). En NODE_ENV=test
+  se desactiva automáticamente para no romper los tests.
+- Rate limiting en endpoints públicos con express-rate-limit.
+- Escapar siempre HTML en datos del usuario usando escapeHtml() de web/helpers.js.
+- Nunca loggear contraseñas, tokens ni API keys.
+- El fichero .env NUNCA se commitea. Verificar .gitignore antes de git add.
+- Las contraseñas de admin se valoran con comparación en tiempo constante
+  (no comparación directa de strings) para evitar timing attacks.
+- Los webhooks validan que la URL empiece por https:// o http://.
+- Validar siempre email con isValidEmail() y precio con validatePriceRange()
+  antes de insertar en BD.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 12. VARIABLES DE ENTORNO Y CONFIGURACIÓN
+# ─────────────────────────────────────────────────────────────────────────────
+- Toda nueva variable de entorno DEBE añadirse a .env.example con:
+    # Descripción de la variable
+    NOMBRE_VARIABLE=valor_defecto
+- Las variables de configuración del modo CLI van en src/config.js → loadConfig().
+- Las variables de configuración del servidor web se leen directamente con
+  process.env en el módulo que las usa, con fallback explícito.
+- Los valores booleanos en .env se tratan como:
+    process.env.MI_FLAG !== 'false'  // default true
+    process.env.MI_FLAG === 'true'   // default false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 13. DOCKER Y DESPLIEGUE
+# ─────────────────────────────────────────────────────────────────────────────
+- El Dockerfile usa multi-stage o imagen base con Chromium incluido
+  (node:18-slim + chromium) para soporte de Puppeteer.
+- Las variables de entorno sensibles NO van en el Dockerfile. Se inyectan
+  en tiempo de ejecución via Railway/Render secrets o --env-file.
+- El volumen de datos SQLite debe montarse en /data (configurable con DB_PATH).
+- nixpacks.toml y railway.json deben actualizarse si cambia la versión de Node
+  o el comando de inicio.
+- Los healthchecks van en /health (HTTP 200 con JSON { status: 'ok' }).
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14. MOTOR DE PLANTILLAS
+# ─────────────────────────────────────────────────────────────────────────────
+- El motor de plantillas es minimalista y propio (web/views/render.js).
+  No introducir Handlebars, EJS ni Pug sin consenso explícito.
+- Los tokens de plantilla usan la sintaxis `{{nombre_token}}`.
+- Los partials reutilizables van en web/views/partials/.
+- Para listas usar renderPartialList() que gestiona automáticamente el
+  mensaje de lista vacía.
+- Los tokens de tema (primary, primaryDark, bg, shadowRgb) se inyectan
+  automáticamente a través de injectTheme() de src/theme-web.js.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 15. ESTILO DE CÓDIGO
+# ─────────────────────────────────────────────────────────────────────────────
+- Strings con comillas simples por defecto.
+- Comentarios de sección con el separador: // ── Nombre ──────────────────────
+- Comentarios JSDoc en funciones públicas exportadas.
+- Comentarios de explicación en español; nombres de variables/funciones en inglés.
+- Identación: 2 espacios.
+- Longitud de línea máxima recomendada: 100 caracteres.
+- No usar `var`. Preferir `const` sobre `let`.
+- Funciones async/await para operaciones asíncronas; Promesas solo si es necesario.
