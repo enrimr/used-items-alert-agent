@@ -19,6 +19,24 @@
  */
 
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
+
+// ── Motor de plantillas ────────────────────────────────────────────────────
+
+const EMAILS_DIR = path.join(__dirname, '../web/views/emails');
+
+/**
+ * Renderiza una plantilla de email sustituyendo tokens {{key}}.
+ * Se lee de disco (sin caché) para que funcione en CLI sin servidor web.
+ */
+function renderEmailTemplate(name, vars) {
+  const filePath = path.join(EMAILS_DIR, `${name}.html`);
+  const tpl = fs.readFileSync(filePath, 'utf8');
+  return tpl.replace(/\{\{([\w.]+)\}\}/g, (match, key) =>
+    vars[key] !== undefined ? vars[key] : match
+  );
+}
 
 // ── Detección del remitente ────────────────────────────────────────────────
 
@@ -109,7 +127,7 @@ async function send({ to, fromAddress, subject, html, text = '' }) {
   }
 }
 
-// ── Builders de HTML y texto ───────────────────────────────────────────────
+// ── Helpers de tema y URLs ─────────────────────────────────────────────────
 
 /**
  * Devuelve las variables de tema. Se importa de forma lazy para no
@@ -128,6 +146,8 @@ function buildUnsubscribeUrl(subscriptionId) {
   const base = process.env.BASE_URL || 'http://localhost:3000';
   return `${base}/unsubscribe/${subscriptionId}`;
 }
+
+// ── Builders de contenido dinámico ────────────────────────────────────────
 
 function buildItemsHtml(items, primaryColor) {
   return items.map((item) => {
@@ -168,52 +188,23 @@ function buildSearchBadges(config, t) {
   ].filter(Boolean).join('');
 }
 
-/**
- * HTML de alerta de productos.
- * @param {Array}  items
- * @param {Object} config        — { keywords, minPrice, maxPrice, categoryId, categoryName }
- * @param {string|null} unsubUrl — URL de cancelación (null en modo CLI)
- */
-function buildAlertHtml(items, config, unsubUrl = null) {
-  const t          = getTheme();
-  const itemsHtml  = buildItemsHtml(items, t.primary);
-  const badges     = buildSearchBadges(config, t);
-
-  const footerContent = unsubUrl
-    ? `<div style="font-size:12px;color:#bbb;margin-bottom:8px;">
+function buildAlertFooter(unsubUrl, primaryColor) {
+  if (unsubUrl) {
+    return `<div style="font-size:12px;color:#bbb;margin-bottom:8px;">
          Recibes este email porque creaste una alerta en Wallapop Alertas.
        </div>
        <a href="${unsubUrl}"
           style="font-size:12px;color:#f87171;text-decoration:none;border:1px solid #fecaca;padding:6px 16px;border-radius:20px;">
          ❌ Eliminar esta alerta
-       </a>`
-    : `<div style="font-size:12px;color:#bbb;">
+       </a>`;
+  }
+  return `<div style="font-size:12px;color:#bbb;">
          Wallapop Agent • Solo productos sin reserva<br>
-         <a href="https://es.wallapop.com" style="color:${t.primary};">ir a Wallapop</a>
+         <a href="https://es.wallapop.com" style="color:${primaryColor};">ir a Wallapop</a>
        </div>`;
-
-  return `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,${t.primary},${t.primaryDark});padding:24px 20px;">
-      <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;">🔔 Alertas de Segunda Mano</div>
-      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">
-        ${items.length} nuevo${items.length > 1 ? 's' : ''} producto${items.length > 1 ? 's' : ''} sin reserva
-      </div>
-    </div>
-    <div style="padding:12px 20px;background:#fafafa;border-bottom:1px solid #f0f0f0;">${badges}</div>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      <tbody>${itemsHtml}</tbody>
-    </table>
-    <div style="padding:20px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
-      ${footerContent}
-    </div>
-  </div>
-</body>
-</html>`;
 }
+
+// ── Builders de texto plano ────────────────────────────────────────────────
 
 function buildAlertText(items, config, unsubUrl = null) {
   const lines = [
@@ -253,19 +244,30 @@ async function sendAlertEmail(items, config, toEmail, subscriptionId = null) {
   const fromAddr = getSenderAddress();
   if (!fromAddr) return false;
 
-  // En modo CLI sin toEmail explícito, usar EMAIL_TO del .env
   const recipient = toEmail || process.env.EMAIL_TO;
   if (!recipient) return false;
 
+  const t        = getTheme();
   const unsubUrl = subscriptionId ? buildUnsubscribeUrl(subscriptionId) : null;
-  const subject  = `🆕 ${items.length} nuevo${items.length > 1 ? 's' : ''} en Wallapop: "${config.keywords}"${config.maxPrice ? ` (hasta ${config.maxPrice}€)` : ''}`;
+  const plural   = items.length > 1 ? 's' : '';
+  const subject  = `🆕 ${items.length} nuevo${plural} en Wallapop: "${config.keywords}"${config.maxPrice ? ` (hasta ${config.maxPrice}€)` : ''}`;
   const senderName = subscriptionId ? 'Wallapop Alertas' : 'Wallapop Agent';
+
+  const html = renderEmailTemplate('alert', {
+    primary:          t.primary,
+    primaryDark:      t.primaryDark,
+    itemsCount:       items.length,
+    itemsCountPlural: plural,
+    badges:           buildSearchBadges(config, t),
+    itemsHtml:        buildItemsHtml(items, t.primary),
+    footerContent:    buildAlertFooter(unsubUrl, t.primary),
+  });
 
   return send({
     to:          recipient,
     fromAddress: `"${senderName}" <${fromAddr}>`,
     subject,
-    html:        buildAlertHtml(items, config, unsubUrl),
+    html,
     text:        buildAlertText(items, config, unsubUrl),
   });
 }
@@ -283,46 +285,28 @@ async function sendConfirmationEmail(toEmail, sub) {
 
   const t        = getTheme();
   const unsubUrl = buildUnsubscribeUrl(sub.id);
+
   const priceInfo = [
     sub.min_price != null ? `desde ${sub.min_price}€` : '',
     sub.max_price != null ? `hasta ${sub.max_price}€` : '',
   ].filter(Boolean).join(' ');
 
-  const subject = `✅ Alerta creada: "${sub.keywords}" en Wallapop`;
-  const html    = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,sans-serif;">
-  <div style="max-width:480px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,${t.primary},${t.primaryDark});padding:24px 20px;">
-      <div style="font-size:22px;font-weight:800;color:#fff;">✅ Alerta creada</div>
-      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Te avisaremos cuando aparezcan nuevos productos</div>
-    </div>
-    <div style="padding:24px 20px;">
-      <p style="font-size:15px;color:#444;margin:0 0 16px;">Tu alerta de Wallapop está activa:</p>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Búsqueda</td>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${sub.keywords}</td>
-        </tr>
-        ${priceInfo ? `<tr>
+  const priceRow = priceInfo
+    ? `<tr>
           <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Precio</td>
           <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${priceInfo}</td>
-        </tr>` : ''}
-        <tr>
-          <td style="padding:8px 0;color:#888;font-size:13px;">Email</td>
-          <td style="padding:8px 0;font-weight:600;font-size:13px;">${toEmail}</td>
-        </tr>
-      </table>
-    </div>
-    <div style="padding:16px 20px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
-      <a href="${unsubUrl}" style="font-size:12px;color:#f87171;text-decoration:none;border:1px solid #fecaca;padding:6px 16px;border-radius:20px;">
-        ❌ Eliminar esta alerta
-      </a>
-    </div>
-  </div>
-</body>
-</html>`;
+        </tr>`
+    : '';
+
+  const subject = `✅ Alerta creada: "${sub.keywords}" en Wallapop`;
+  const html    = renderEmailTemplate('confirmation', {
+    primary:     t.primary,
+    primaryDark: t.primaryDark,
+    keywords:    sub.keywords,
+    priceRow,
+    email:       toEmail,
+    unsubUrl,
+  });
 
   return send({
     to:          toEmail,
@@ -367,44 +351,18 @@ async function sendVerificationEmail(toEmail, sub) {
   const fromAddr = getSenderAddress();
   if (!fromAddr) return false;
 
-  const t           = getTheme();
-  const verifyUrl   = `${process.env.BASE_URL || 'http://localhost:3000'}/verify/${sub.verification_token}`;
-  const unsubUrl    = buildUnsubscribeUrl(sub.id);
-  const subject     = `✅ Confirma tu alerta: "${sub.keywords}"`;
+  const t          = getTheme();
+  const verifyUrl  = `${process.env.BASE_URL || 'http://localhost:3000'}/verify/${sub.verification_token}`;
+  const unsubUrl   = buildUnsubscribeUrl(sub.id);
+  const subject    = `✅ Confirma tu alerta: "${sub.keywords}"`;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,sans-serif;">
-  <div style="max-width:480px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,${t.primary},${t.primaryDark});padding:24px 20px;">
-      <div style="font-size:22px;font-weight:800;color:#fff;">📧 Confirma tu alerta</div>
-      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Un clic para activarla</div>
-    </div>
-    <div style="padding:24px 20px;">
-      <p style="font-size:15px;color:#444;margin:0 0 16px;">
-        Has creado una alerta para <strong>"${sub.keywords}"</strong>.<br>
-        Haz clic en el botón para confirmar tu email y activar la alerta:
-      </p>
-      <div style="text-align:center;margin:24px 0;">
-        <a href="${verifyUrl}"
-           style="display:inline-block;background:${t.primary};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">
-          ✅ Confirmar y activar alerta
-        </a>
-      </div>
-      <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">
-        Si no creaste esta alerta, ignora este email.<br>
-        El enlace caduca en 48 horas.
-      </p>
-    </div>
-    <div style="padding:16px 20px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
-      <a href="${unsubUrl}" style="font-size:12px;color:#f87171;text-decoration:none;border:1px solid #fecaca;padding:6px 16px;border-radius:20px;">
-        ❌ Cancelar esta alerta
-      </a>
-    </div>
-  </div>
-</body>
-</html>`;
+  const html = renderEmailTemplate('verification', {
+    primary:     t.primary,
+    primaryDark: t.primaryDark,
+    keywords:    sub.keywords,
+    verifyUrl,
+    unsubUrl,
+  });
 
   const text = `Confirma tu alerta de Wallapop\n\nAlerta: "${sub.keywords}"\n\nHaz clic aquí para confirmar:\n${verifyUrl}\n\nSi no creaste esta alerta, ignora este email.\n`;
 
@@ -420,9 +378,6 @@ async function sendVerificationEmail(toEmail, sub) {
 /**
  * Envía un email de alerta al administrador del sitio cuando el scraper
  * falla N veces consecutivas para una suscripción.
- *
- * Configura el destinatario con ADMIN_EMAIL en .env.
- * Si no está configurado, la función no hace nada (no lanza error).
  *
  * @param {string} subscriptionEmail  — email del usuario cuya alerta falla
  * @param {string} keywords           — keywords de la suscripción afectada
@@ -440,47 +395,14 @@ async function sendAdminAlert(subscriptionEmail, keywords, failCount, errorMessa
   const t       = getTheme();
   const subject = `🚨 Worker: ${failCount} fallos consecutivos — "${keywords}"`;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,sans-serif;">
-  <div style="max-width:520px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:24px 20px;">
-      <div style="font-size:22px;font-weight:800;color:#fff;">🚨 Alerta del scraper</div>
-      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">${failCount} fallos consecutivos detectados</div>
-    </div>
-    <div style="padding:24px 20px;">
-      <table style="width:100%;border-collapse:collapse;">
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;width:40%">Suscripción</td>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${subscriptionEmail}</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Búsqueda</td>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${keywords}</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Fallos</td>
-          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;color:#ef4444;">${failCount} consecutivos</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;color:#888;font-size:13px;vertical-align:top;">Último error</td>
-          <td style="padding:8px 0;font-size:12px;color:#6b7280;word-break:break-word;">${errorMessage}</td>
-        </tr>
-      </table>
-      <div style="margin-top:16px;padding:12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;font-size:13px;color:#991b1b;">
-        ⚠️ El worker ha reiniciado el navegador automáticamente. Si los errores persisten, revisa el estado del servicio.
-      </div>
-    </div>
-    <div style="padding:16px 20px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
-      <a href="${process.env.BASE_URL || 'http://localhost:3000'}/admin"
-         style="font-size:13px;color:${t.primary};text-decoration:none;font-weight:600;">
-        🔧 Ver panel de administración →
-      </a>
-    </div>
-  </div>
-</body>
-</html>`;
+  const html = renderEmailTemplate('admin-alert', {
+    primary:           t.primary,
+    failCount,
+    subscriptionEmail,
+    keywords,
+    errorMessage,
+    adminUrl:          `${process.env.BASE_URL || 'http://localhost:3000'}/admin`,
+  });
 
   const text = `🚨 ALERTA DEL SCRAPER\n\nSuscripción: ${subscriptionEmail}\nBúsqueda: "${keywords}"\nFallos consecutivos: ${failCount}\nÚltimo error: ${errorMessage}\n\nEl worker ha reiniciado el navegador automáticamente.\n`;
 
