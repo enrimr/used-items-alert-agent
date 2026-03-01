@@ -44,13 +44,15 @@ app.use(rateLimit({
 if (process.env.NODE_ENV !== 'test') {
   const csrfSecret = process.env.CSRF_SECRET || 'wallapop-csrf-secret-dev-change-in-prod';
 
+  const isProd = process.env.NODE_ENV === 'production';
   const { generateToken, doubleCsrfProtection } = doubleCsrf({
     getSecret:    () => csrfSecret,
-    cookieName:   '__Host-psifi.x-csrf-token',
+    // Sin prefijo __Host- en desarrollo (requiere HTTPS)
+    cookieName:   isProd ? '__Host-csrf-token' : 'csrf-token',
     cookieOptions: {
       httpOnly: true,
       sameSite: 'strict',
-      secure:   process.env.NODE_ENV === 'production',
+      secure:   isProd,
       path:     '/',
     },
     ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
