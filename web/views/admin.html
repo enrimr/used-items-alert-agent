@@ -179,6 +179,18 @@
   </div>
 
   <script>
+    // Token CSRF para formularios del admin
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('form').forEach(f => {
+        if (!f.querySelector('input[name="_csrf"]')) {
+          const input = document.createElement('input');
+          input.type  = 'hidden';
+          input.name  = '_csrf';
+          input.value = '{{csrfToken}}';
+          f.appendChild(input);
+        }
+      });
+    });
     const PRIMARY = '{{primary}}';
     const PAGE_SIZE = 10;
     let currentPage = 1;

@@ -9,12 +9,15 @@
     "help": "node index.js --help",
     "web": "node server.js",
     "web:only": "node server.js --web",
-    "test": "node_modules/.bin/jest --runInBand --forceExit",
-    "test:watch": "node_modules/.bin/jest --watch",
-    "test:coverage": "node_modules/.bin/jest --runInBand --forceExit --coverage"
+    "test": "NODE_ENV=test node_modules/.bin/jest --runInBand --forceExit",
+    "test:watch": "NODE_ENV=test node_modules/.bin/jest --watch",
+    "test:coverage": "NODE_ENV=test node_modules/.bin/jest --runInBand --forceExit --coverage"
   },
   "jest": {
     "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "env": { "NODE_ENV": "test" }
+    },
     "testMatch": [
       "**/tests/**/*.test.js"
     ],
@@ -47,6 +50,8 @@
     "axios": "^1.6.0",
     "better-sqlite3": "^9.6.0",
     "chalk": "^4.1.2",
+    "cookie-parser": "^1.4.7",
+    "csrf-csrf": "^4.0.3",
     "dotenv": "^16.3.1",
     "express": "^4.22.1",
     "express-rate-limit": "^8.2.1",

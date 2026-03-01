@@ -452,7 +452,11 @@
       try {
         const res = await fetch('/subscribe', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+          },
           body: JSON.stringify(body),
         });
 

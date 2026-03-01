@@ -47,6 +47,12 @@ router.get('/', (req, res) => {
   // Inject theme colors
   html = injectTheme(html);
 
+  // Inject CSRF token as a JS variable accessible al formulario
+  const csrfToken = req.app.locals.generateCsrfToken
+    ? req.app.locals.generateCsrfToken(req, res)
+    : '';
+  html = html.replace('</head>', `  <script>window.__CSRF_TOKEN__ = ${JSON.stringify(csrfToken)};</script>\n</head>`);
+
   // Inject AdSense if configured
   if (adsenseId) {
     const adsenseScript = `\n  <!-- Google AdSense -->\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`;
@@ -58,10 +64,19 @@ router.get('/', (req, res) => {
   res.send(html);
 });
 
+// Middleware CSRF: solo aplica a formularios HTML (no a JSON API)
+function csrfForHtmlForms(req, res, next) {
+  const isJsonApi = req.headers.accept && req.headers.accept.includes('application/json');
+  if (isJsonApi) return next(); // JSON API no necesita CSRF
+  const protection = req.app.locals.doubleCsrfProtection;
+  if (!protection) return next(); // CSRF no configurado (tests)
+  return protection(req, res, next);
+}
+
 // ────────────────────────────────────────────
 // POST /subscribe → Create new alert
 // ────────────────────────────────────────────
-router.post('/subscribe', subscribeLimiter, async (req, res) => {
+router.post('/subscribe', subscribeLimiter, csrfForHtmlForms, async (req, res) => {
   const {
     email, keywords, min_price, max_price,
     category_id, email_frequency, shipping_only,

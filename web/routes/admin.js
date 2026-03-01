@@ -48,6 +48,14 @@ function adminAuth(req, res, next) {
 
 router.use(adminAuth);
 
+// CSRF para todas las rutas POST del admin
+// El admin ya tiene Basic Auth, pero añadimos CSRF como defensa en profundidad
+function adminCsrf(req, res, next) {
+  const protection = req.app.locals.doubleCsrfProtection;
+  if (!protection) return next(); // no configurado (tests)
+  return protection(req, res, next);
+}
+
 // ─── Helpers de formato ────────────────────────────────────────────────────
 function formatDate(ts) {
   if (!ts) return '—';
@@ -227,33 +235,40 @@ router.get('/', (req, res) => {
     alertsCards: renderPartialList('alert-card', subs,       mapAlertCard, EMPTY_CARD),
   };
 
+  // Generar token CSRF para los formularios del panel admin
+  const csrfToken = req.app.locals.generateCsrfToken
+    ? req.app.locals.generateCsrfToken(req, res)
+    : '';
+  vars.csrfToken = csrfToken;
+
   res.send(renderTemplate('admin', vars));
 });
 
 // ─── Rutas de acción ───────────────────────────────────────────────────────
 // POST (no GET) para evitar que navegadores/proxies precarguen URLs destructivas
-router.post('/delete/:id', (req, res) => {
+// + CSRF como defensa en profundidad
+router.post('/delete/:id', adminCsrf, (req, res) => {
   deleteSubscription(req.params.id);
   res.redirect('/admin');
 });
 
-router.post('/reactivate/:id', (req, res) => {
+router.post('/reactivate/:id', adminCsrf, (req, res) => {
   reactivateSubscription(req.params.id);
   res.redirect('/admin');
 });
 
-router.post('/hard-delete/:id', (req, res) => {
+router.post('/hard-delete/:id', adminCsrf, (req, res) => {
   hardDeleteSubscription(req.params.id);
   res.redirect('/admin');
 });
 
-router.post('/set-frequency', (req, res) => {
+router.post('/set-frequency', adminCsrf, (req, res) => {
   const { id, frequency } = req.body;
   if (id && frequency) updateFrequency(id, frequency);
   res.redirect('/admin');
 });
 
-router.post('/edit/:id', (req, res) => {
+router.post('/edit/:id', adminCsrf, (req, res) => {
   const { id } = req.params;
   const { keywords, min_price, max_price, category_id } = req.body;
   if (id && keywords && keywords.trim().length >= 2) {
@@ -267,7 +282,7 @@ router.post('/edit/:id', (req, res) => {
   res.redirect('/admin');
 });
 
-router.post('/set-limit', (req, res) => {
+router.post('/set-limit', adminCsrf, (req, res) => {
   const { email, max_alerts } = req.body;
   if (email && max_alerts !== undefined) {
     setAlertLimitForEmail(email, Math.max(0, parseInt(max_alerts, 10) || 0));
