@@ -31,18 +31,40 @@ function getThemeVars() {
 }
 
 /**
- * Injects theme CSS variables into an HTML string by replacing
- * the CSS custom properties defined in index.html.
+ * Injects theme CSS variables into an HTML string.
+ *
+ * Two-pass strategy:
+ *   1. Replace CSS custom properties inline (for HTML templates that embed
+ *      the variables directly, e.g. admin.html).
+ *   2. Inject an override <style> block before </head> (for pages like
+ *      index.html that load CSS from an external file).
+ *
+ * Both passes are always applied; they're safe no-ops when the target
+ * patterns are not present.
  */
 function injectTheme(html) {
   const t = getThemeVars();
-  return html
+
+  // Pass 1: replace inline CSS variable declarations
+  let result = html
     .replace(/--primary:\s*#[0-9a-fA-F]+;/, `--primary: ${t.primary};`)
     .replace(/--primary-dark:\s*#[0-9a-fA-F]+;/, `--primary-dark: ${t.primaryDark};`)
     .replace(/--bg:\s*#[0-9a-fA-F]+;/, `--bg: ${t.bg};`)
     .replace(/rgba\(249,115,22,0\.12\)/g, `rgba(${t.shadowRgb},0.12)`)
     .replace(/rgba\(249,115,22,0\.1\)/g, `rgba(${t.shadowRgb},0.1)`)
     .replace(/rgba\(249,115,22,0\.15\)/g, `rgba(${t.shadowRgb},0.15)`);
+
+  // Pass 2: inject override <style> block for external stylesheets (index.css)
+  if (result.includes('</head>')) {
+    const style = `<style>
+    :root { --primary: ${t.primary}; --primary-dark: ${t.primaryDark}; --bg: ${t.bg}; }
+    .card { box-shadow: 0 4px 24px rgba(${t.shadowRgb},0.12); border-color: rgba(${t.shadowRgb},0.1); }
+    input:focus, select:focus { box-shadow: 0 0 0 3px rgba(${t.shadowRgb},0.15); }
+  </style>`;
+    result = result.replace('</head>', `${style}\n</head>`);
+  }
+
+  return result;
 }
 
 module.exports = { getThemeVars, injectTheme };
