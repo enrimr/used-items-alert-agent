@@ -38,10 +38,11 @@ app.use(rateLimit({
 }));
 
 // ─── CSRF protection ──────────────────────────────────────────────────────
-// Desactivado en entorno de tests (NODE_ENV=test) para no romper los tests
-// existentes. En desarrollo y producción, protege formularios HTML contra
-// ataques Cross-Site Request Forgery usando el patrón Double Submit Cookie.
-if (process.env.NODE_ENV !== 'test') {
+// Activar con CSRF_ENABLED=true en .env (por defecto: false en local).
+// En producción se recomienda activarlo siempre.
+// Desactivado automáticamente en NODE_ENV=test.
+const csrfEnabled = process.env.CSRF_ENABLED === 'true' && process.env.NODE_ENV !== 'test';
+if (csrfEnabled) {
   const csrfSecret = process.env.CSRF_SECRET || 'wallapop-csrf-secret-dev-change-in-prod';
 
   const isProd = process.env.NODE_ENV === 'production';
