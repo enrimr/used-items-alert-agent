@@ -18,7 +18,7 @@
 require('dotenv').config();
 
 const { startServer } = require('./web/server');
-const { startWorker } = require('./web/worker');
+const { startWorker, stopWorker } = require('./web/worker');
 const { verifyEmailConfig } = require('./src/mailer');
 
 const args = process.argv.slice(2);
@@ -69,7 +69,6 @@ async function main() {
   // Graceful shutdown
   const shutdown = async (signal) => {
     console.log(`\n⚠️  ${signal} recibido. Cerrando...`);
-    const { stopWorker } = require('./web/worker');
     await stopWorker();
     process.exit(0);
   };
