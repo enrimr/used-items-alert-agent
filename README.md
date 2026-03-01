@@ -1,6 +1,6 @@
-# 🔍 Userd Items Alert Agent
+# 🔍 Used Items Alert Agent
 
-> Monitor a Spanish Used Items website for new listings and get notified instantly — via CLI, email, or a public web interface.
+> Monitoriza Wallapop España en busca de nuevas publicaciones y recibe alertas al instante — por CLI, email o interfaz web pública.
 
 ![Used Items Alerts Web](docs/screenshot.png)
 
@@ -9,129 +9,90 @@
 
 ---
 
-## ✨ Features
+## ✨ Características
 
-- 🔎 **Keyword search** with price range and category filters
-- 🚫 **Excludes reserved and sold** items automatically
-- 📧 **Email alerts** with product photo, price, description and direct link
-- 🌐 **Web interface** — anyone can subscribe without registering
-- ❌ **One-click unsubscribe** link in every email
-- 💾 **Persistent history** — no duplicate alerts between restarts
-- 🛡️ **Auto-recovery** on browser crashes
-- 🔄 **Continuous polling** with configurable interval
+- 🔎 **Búsqueda por palabras clave** con filtros de precio y categoría
+- 🚫 **Filtra automáticamente** productos reservados y vendidos
+- 📧 **Alertas por email** con foto, precio, descripción y enlace directo
+- 🌐 **Interfaz web** — cualquiera puede suscribirse sin registrarse
+- ❌ **Baja con un clic** desde cada email
+- 🔗 **Webhooks** — integra con Zapier, n8n, Make, Slack, etc.
+- 📅 **Frecuencia configurable** — inmediata, diaria o semanal
+- 🚚 **Filtro de envío** — solo productos con opción de envío
+- 🌍 **Multiidioma** — español, inglés, italiano y catalán
+- 💾 **Historial persistente** — sin alertas duplicadas entre reinicios
+- 🛡️ **Autorrecuperación** ante caídas del navegador
+- 🔄 **Polling continuo** con intervalo configurable
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Inicio rápido
 
 ```bash
-# Clone and install
+# Clonar e instalar
 git clone https://github.com/enrimr/used-items-alert-agent.git
 cd used-items-alert-agent
 npm install
 
-# Configure
+# Configurar
 cp .env.example .env
-# Edit .env with your settings
+# Edita .env con tus ajustes
 ```
 
 ---
 
-## 🖥️ Mode 1 — CLI (personal use)
+## 🖥️ Modo 1 — CLI (uso personal)
 
-Monitor the Spanish Used Items website for your own searches from the terminal.
+Monitoriza Wallapop desde el terminal para tus propias búsquedas.
 
 ```bash
-npm start           # Continuous monitoring loop
-npm run once        # Single search
-node index.js --help
+npm start              # Bucle continuo de monitorización
+npm run once           # Búsqueda única
+node index.js --help   # Muestra la ayuda
 ```
 
-**Configure `.env`:**
+**Configura `.env`:**
 ```env
 KEYWORDS=iphone 13
 MIN_PRICE=100
 MAX_PRICE=500
-CATEGORY_ID=12579       # Optional
+CATEGORY_ID=12579       # Opcional — ver tabla de categorías abajo
 POLL_INTERVAL_SECONDS=90
 ```
 
 ---
 
-## 🌐 Mode 2 — Web Server (public service)
+## 🌐 Modo 2 — Servidor web (servicio público)
 
-Run a web interface where anyone can create their own Used Items alerts.
+Levanta una interfaz web donde cualquier persona puede crear sus propias alertas de Wallapop.
 
 ```bash
-npm run web         # Start web server + background worker
-npm run web:only    # Start web server only (no worker)
+npm run web         # Servidor web + worker en segundo plano
+npm run web:only    # Solo el servidor web (sin worker)
 ```
 
-**How it works:**
-1. User fills in the form (keywords, price, category, email)
-2. Alert is saved to SQLite — no account needed
-3. Background worker polls Used Items website every 2 minutes for each subscription
-4. New products → HTML email with unsubscribe link
-5. User clicks "❌ Eliminar esta alerta" → alert deleted
+**Cómo funciona:**
+1. El usuario rellena el formulario (palabras clave, precio, categoría, email)
+2. La alerta se guarda en SQLite — sin necesidad de cuenta
+3. El worker comprueba Wallapop cada N minutos para cada suscripción
+4. Nuevos productos → email HTML con enlace de cancelación
+5. El usuario hace clic en "❌ Eliminar esta alerta" → alerta eliminada
 
-**Configure `.env` for web:**
+**Configura `.env` para web:**
 ```env
-# Web server
 WEB_PORT=3000
-BASE_URL=http://localhost:3000   # Your public domain in production
-
-# Worker interval
+BASE_URL=http://localhost:3000   # Tu dominio público en producción
 WORKER_INTERVAL_SECONDS=120
-
-# Email (SMTP)
-EMAIL_FROM=turemitente@gmail.com
-EMAIL_SMTP_HOST=smtp.gmail.com
-EMAIL_SMTP_PORT=587
-EMAIL_SMTP_SECURE=false
-EMAIL_SMTP_USER=turemitente@gmail.com
-EMAIL_SMTP_PASS=xxxx xxxx xxxx xxxx   # Gmail App Password
+EMAIL_FROM=noreply@tudominio.com
+RESEND_API_KEY=re_xxxx           # Recomendado (ver abajo)
 ```
 
 ---
 
-## ⚙️ Full `.env` Reference
+## 🏷️ IDs de categoría
 
-```env
-# ── SEARCH (CLI mode) ──────────────────────────────────────
-KEYWORDS=iphone 13           # Required
-MIN_PRICE=100                # Optional
-MAX_PRICE=500                # Optional
-CATEGORY_ID=12579            # Optional (see categories below)
-POLL_INTERVAL_SECONDS=90     # Minimum 30
-MAX_RESULTS=40
-HEADLESS=true
-
-# ── NOTIFICATIONS (CLI mode) ───────────────────────────────
-DESKTOP_NOTIFICATIONS=true
-SAVE_TO_FILE=true
-OUTPUT_FILE=./encontrados.json
-
-# ── EMAIL ──────────────────────────────────────────────────
-EMAIL_TO=me@example.com      # CLI mode recipient
-EMAIL_FROM=sender@gmail.com
-EMAIL_SMTP_HOST=smtp.gmail.com
-EMAIL_SMTP_PORT=587
-EMAIL_SMTP_SECURE=false
-EMAIL_SMTP_USER=sender@gmail.com
-EMAIL_SMTP_PASS=app_password
-
-# ── WEB SERVER ─────────────────────────────────────────────
-WEB_PORT=3000
-BASE_URL=http://localhost:3000
-WORKER_INTERVAL_SECONDS=120
-```
-
----
-
-## 🏷️ Category IDs
-
-| ID | Category |
-|----|----------|
+| ID | Categoría |
+|----|-----------|
 | `12465` | Tecnología |
 | `12579` | Móviles y telefonía |
 | `15000` | Informática |
@@ -149,286 +110,160 @@ WORKER_INTERVAL_SECONDS=120
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Estructura del proyecto
 
 ```
 used-items-alert-agent/
 │
-├── index.js              # CLI entry point
-├── server.js             # Web server entry point
+├── index.js              # Punto de entrada CLI
+├── server.js             # Punto de entrada web
 │
 ├── src/
-│   ├── agent.js          # CLI polling loop with auto-recovery
-│   ├── scraper.js        # Puppeteer scraper (intercepts /api/v3/search/section)
-│   ├── config.js         # Loads and validates .env
-│   ├── store.js          # Persistent seen-items store (JSON)
-│   ├── notifier.js       # Console output + desktop notifications
-│   └── emailer.js        # SMTP email for CLI mode
+│   ├── agent.js          # Bucle de polling CLI con autorrecuperación
+│   ├── scraper.js        # Scraper Puppeteer (intercepta /api/v3/search/section)
+│   ├── config.js         # Carga y valida .env (modo CLI)
+│   ├── store.js          # Store en memoria + persistencia JSON (CLI)
+│   ├── browser.js        # Ciclo de vida del navegador (singleton + mutex)
+│   ├── mailer.js         # Motor de email unificado (Resend + SMTP)
+│   ├── webhook.js        # Dispatcher de webhooks HTTP
+│   ├── notifier.js       # Salida en consola + notificaciones de escritorio
+│   ├── categories.js     # IDs de categorías de Wallapop España
+│   ├── constants.js      # Constantes compartidas (timeouts, ciclos, etc.)
+│   ├── theme-web.js      # Puente para acceder al tema desde el mailer CLI
+│   └── utils.js          # Utilidades compartidas (validaciones)
 │
 ├── web/
-│   ├── server.js         # Express routes: /, /subscribe, /unsubscribe/:id
-│   ├── worker.js         # Background worker for all subscriptions
-│   ├── mailer.js         # HTML email templates with unsubscribe link
-│   ├── db.js             # SQLite: subscriptions + seen items per user
+│   ├── server.js         # Express: monta rutas y middlewares globales
+│   ├── worker.js         # Worker de fondo: procesa todas las suscripciones
+│   ├── theme.js          # Paletas de color configurable (THEME_COLOR)
+│   ├── helpers.js        # Helpers Express (escapeHtml, renderSimplePage)
+│   ├── db.js             # Re-exporta todos los módulos de BD
+│   ├── routes/
+│   │   ├── subscribe.js  # Rutas públicas: /, /subscribe, /unsubscribe, /verify
+│   │   └── admin.js      # Panel /admin (autenticado con Basic Auth)
+│   ├── db/
+│   │   ├── connection.js # Conexión SQLite + migraciones automáticas
+│   │   ├── subscriptions.js # CRUD de suscripciones
+│   │   ├── seen-items.js # Items ya vistos por suscripción
+│   │   ├── digest.js     # Acumulación persistente para emails diarios/semanales
+│   │   └── stats.js      # Estadísticas para el dashboard admin
+│   ├── i18n/
+│   │   ├── index.js      # Middleware i18n, detección de idioma
+│   │   ├── es.js         # Traducciones español
+│   │   ├── en.js         # Traducciones inglés
+│   │   ├── it.js         # Traducciones italiano
+│   │   └── ca.js         # Traducciones catalán
+│   ├── views/
+│   │   ├── render.js     # Motor de plantillas (reemplaza {{tokens}})
+│   │   ├── admin.html    # Dashboard de administración
+│   │   ├── success.html  # Página de confirmación de suscripción
+│   │   ├── simple-page.html # Página genérica (unsubscribe, verify, etc.)
+│   │   ├── emails/       # Plantillas HTML de email
+│   │   └── partials/     # Fragmentos HTML reutilizables
 │   └── public/
-│       └── index.html    # Frontend form (no framework, pure HTML/CSS/JS)
+│       ├── index.html    # Formulario público (HTML/CSS/JS puro)
+│       ├── index.css     # Estilos del formulario
+│       └── admin.css     # Estilos del panel admin
 │
-├── docs/
-│   └── screenshot.png    # Web interface screenshot
-│
-├── .env.example          # Configuration template
+├── tests/                # Suite de tests Jest
+├── docs/                 # Documentación y capturas
+├── .env.example          # Plantilla de configuración
+├── Dockerfile            # Imagen Docker (Node 18 + Chromium)
 └── LICENSE               # MIT
 ```
 
 ---
 
-## 📧 Gmail App Password
+## 📚 Documentación completa
 
-1. Enable 2-Step Verification on your Google account
-2. Go to https://myaccount.google.com/apppasswords
-3. Create an app password for "Mail"
-4. Use it as `EMAIL_SMTP_PASS` in `.env`
-
----
-
-## ☁️ Deploy
-
-> **Vercel note:** Vercel does **not** support persistent SQLite, long-running background workers or Puppeteer. Use Railway or Render instead.
+| Documento | Descripción |
+|-----------|-------------|
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Referencia completa de todas las variables de entorno |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Railway, Render, Docker, auto-hospedaje |
+| [SECURITY.md](docs/SECURITY.md) | CSRF, rate limiting, autenticación, buenas prácticas |
+| [WEBHOOKS.md](docs/WEBHOOKS.md) | Integración con Zapier, n8n, Make, Slack y más |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Arquitectura, tests, cómo contribuir |
 
 ---
 
-### 🚂 Railway
+## 📧 Configuración de email
 
-Railway supports persistent volumes, background workers and Docker natively.
+### Opción 1: Resend (recomendado en producción)
 
-**Steps:**
-
-1. **Fork / push** this repo to GitHub
-2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo** → select your fork
-3. Railway will detect the `Dockerfile` and start the first deploy
-4. **Create a persistent Volume** for the SQLite database (see below ↓)
-5. Set the **environment variables** listed below
-6. Railway will redeploy automatically
-
-#### 💾 Creating the persistent Volume (important!)
-
-Without a volume, the SQLite database is **lost on every redeploy**. Follow these steps:
-
-1. In your Railway project, click on your **service** (not the project)
-2. Go to the **Volumes** tab (in the service settings sidebar)
-3. Click **+ New Volume**
-4. Set:
-   - **Mount path**: `/data`
-   - **Size**: 1 GB (free tier)
-5. Click **Create**
-6. Add the environment variable `DB_PATH=/data/alerts.db`
-7. Railway will redeploy — from now on the database persists across deploys ✅
-
-> ℹ️ If you don't see the **Volumes** tab, make sure you are inside the **service** settings, not the project settings.
-
-#### 🔑 Environment variables
+[Resend](https://resend.com) ofrece 3 000 emails/mes gratuitos y **no usa SMTP** (compatble con Railway y Render que bloquean puertos SMTP).
 
 ```env
-BASE_URL=https://yourapp.up.railway.app
-EMAIL_FROM=noreply@tudominio.com
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended — Railway blocks SMTP
-RESEND_EMAIL_FROM=noreply@tudominio.com
-WORKER_INTERVAL_SECONDS=120
-HEADLESS=true
-DB_PATH=/data/alerts.db                  # must match your volume mount path
-ADMIN_PASSWORD=yourpassword
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+RESEND_EMAIL_FROM=alertas@tudominio.com   # Debe estar verificado en resend.com
+```
+
+### Opción 2: Gmail (uso local)
+
+1. Activa la verificación en dos pasos en tu cuenta Google
+2. Ve a https://myaccount.google.com/apppasswords
+3. Crea una contraseña de aplicación para "Correo"
+4. Úsala en `EMAIL_SMTP_PASS`
+
+```env
+EMAIL_FROM=tuemail@gmail.com
+EMAIL_SMTP_HOST=smtp.gmail.com
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_SECURE=false
+EMAIL_SMTP_USER=tuemail@gmail.com
+EMAIL_SMTP_PASS=xxxx xxxx xxxx xxxx
+```
+
+---
+
+## 🔧 Panel de administración
+
+Accede al dashboard en `/admin` (protegido con `ADMIN_PASSWORD`).
+
+**Funcionalidades:**
+- 📊 **8 KPIs**: alertas activas/totales, usuarios, emails enviados/fallidos, tasa de éxito, % eliminadas, productos procesados
+- 📧 **Gestión de usuarios**: ver alertas por email, ajustar límites individuales
+- 🔔 **Tabla de alertas**: búsqueda, filtros, edición inline de palabras clave/precio/categoría/frecuencia
+- 🔗 **Webhooks**: configurar/eliminar webhook URL por alerta desde el panel
+- ♻️ **Reactivar** alertas desactivadas con un clic
+- 🗑️ **Borrado permanente** con doble confirmación
+- 📄 **Paginación** en ambas tablas (10 filas/página)
+
+```env
+ADMIN_PASSWORD=tucontraseña_segura
 MAX_ALERTS_PER_EMAIL=10
 ```
 
-> ⚠️ Railway **blocks outbound SMTP** (ports 587/465). Use **Resend** (`RESEND_API_KEY`) instead of `EMAIL_SMTP_*`.
-
 ---
 
-### 🎨 Render
-
-Render supports Docker deploys with persistent disks and free tier.
-
-**Steps:**
-
-1. **Fork / push** this repo to GitHub
-2. Go to [render.com](https://render.com) → **New → Web Service** → connect your repo
-3. Choose **Docker** as the runtime (Render detects the `Dockerfile` automatically)
-4. Set **Start Command**: `node server.js`
-5. Add a **Persistent Disk**:
-   - Mount path: `/data`
-   - Size: 1 GB (free tier allows 1 GB)
-6. Set these **environment variables** in Render:
+## 🎨 Temas de color
 
 ```env
-BASE_URL=https://yourapp.onrender.com
-EMAIL_FROM=noreply@tudominio.com
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx   # recommended (Render may block SMTP)
-RESEND_EMAIL_FROM=noreply@tudominio.com
-WORKER_INTERVAL_SECONDS=120
-HEADLESS=true
-DB_PATH=/data/alerts.db
-ADMIN_PASSWORD=yourpassword
-MAX_ALERTS_PER_EMAIL=10
+THEME_COLOR=orange   # orange | teal | purple | blue | neutral
 ```
 
-7. Click **Create Web Service** — Render will build the Docker image and deploy
+| Valor | Color |
+|-------|-------|
+| `orange` | Naranja cálido *(por defecto)* |
+| `teal` | Verde azulado |
+| `purple` | Violeta/índigo |
+| `blue` | Azul cielo |
+| `neutral` | Gris pizarra |
 
-> ⚠️ Free tier on Render **spins down after 15 min of inactivity**. Upgrade to Starter ($7/mo) for always-on service.
-> ⚠️ Render may also **block outbound SMTP**. Use **Resend** to be safe.
+El tema se aplica al formulario web, panel admin y plantillas de email.
 
 ---
 
-## 🚨 Admin alerts on scraper failure
+## ⚠️ Notas
 
-When the scraper fails **N consecutive times** for the same subscription, an alert email is automatically sent to the site administrator.
-
-**Configure in `.env`:**
-```env
-ADMIN_EMAIL=admin@tudominio.com      # recipient — leave empty to disable
-SCRAPER_FAILURE_THRESHOLD=3          # default: 3 consecutive failures
-```
-
-**What the email contains:**
-- User email and search keywords of the affected subscription
-- Number of consecutive failures
-- Last error message
-- Link to the admin panel
-
-**Behavior:**
-- The alert is sent **only once** per threshold crossing (not on every subsequent failure)
-- The counter resets automatically when the subscription processes successfully again
-- Independent from `EMAIL_FAILURE_THRESHOLD` (which controls email delivery failures, not scraper failures)
-
-**In the logs:**
-```
-✗ [user@email.com] "ps5" → error: Timeout waiting for API
-⚠️ [user@email.com] "ps5" → fallo scraper 3/3
-🚨 [user@email.com] "ps5" → enviando alerta al admin (admin@tudominio.com)...
-```
+- Usa Puppeteer (navegador headless) para sortear la protección CloudFront de Wallapop
+- Intervalo mínimo recomendado: 60-90 segundos
+- El worker procesa suscripciones en paralelo (por defecto: 3 simultáneas) — configurable con `WORKER_CONCURRENCY`
+- Los items del digest (diario/semanal) se persisten en SQLite y sobreviven a reinicios del servidor
 
 ---
 
-## 📧 Email Verification
-
-When enabled, users must confirm their email address before their alert becomes active. This prevents abuse (alerts created with someone else's email) and ensures delivery quality.
-
-**How it works:**
-1. User submits the form → alert is created in the DB with `verified = 0`
-2. A confirmation email is sent with a unique link: `GET /verify/<token>`
-3. Until the user clicks the link, the worker **skips** that subscription
-4. After clicking → `verified = 1`, alert activates immediately
-
-**Enable/disable:**
-```env
-REQUIRE_EMAIL_VERIFICATION=false   # default: off (alert activates instantly)
-REQUIRE_EMAIL_VERIFICATION=true    # sends verification email before activating
-```
-
-> ⚠️ Requires email to be configured (`RESEND_API_KEY` or `EMAIL_SMTP_*`). If no email transport is set up, alerts will never activate when verification is required.
-
----
-
-## 🚚 Shipping filter
-
-Users can check "Solo productos con envío" (shipping only) when creating an alert. When enabled:
-
-- The scraper adds `shipping_available=true` to the Wallapop search URL
-- Only products that offer shipping are returned and notified
-
-**In the form:** checkbox "🚚 Solo productos con envío" below the frequency selector.
-
-**In the DB:** stored as `shipping_only = 1` on the subscription row.
-
----
-
-## 🛡️ Auto-deactivation on email failures
-
-The worker tracks **consecutive email delivery failures** per subscription. If an email address accumulates N consecutive failures (default: 5), **all active alerts for that email are automatically deactivated** to prevent pointless retries.
-
-**How it works:**
-- Each time an alert email fails → `consecutive_failures` counter is incremented
-- Each time an email is sent successfully → counter is reset to 0
-- When the counter reaches the threshold → all active subscriptions for that email are deactivated
-
-**In the logs:**
-```
-❌ [user@email.com] "iphone 13" → email FALLÓ
-⚠️ Auto-desactivadas 3 alerta(s) de user@email.com tras 5 fallos consecutivos
-🚫 [user@email.com] alertas auto-desactivadas tras 5 fallos consecutivos
-```
-
-**Configure the threshold:**
-```env
-EMAIL_FAILURE_THRESHOLD=5   # default: 5 consecutive failures
-```
-
----
-
-## 🎨 Themes
-
-Choose a color theme via `THEME_COLOR` in `.env` or Railway variables:
-
-| Value | Color | Preview |
-|-------|-------|---------|
-| `orange` | Warm orange *(default)* | `#f97316` |
-| `teal` | Teal/green | `#13c1ac` |
-| `purple` | Violet/indigo | `#7c3aed` |
-| `blue` | Sky blue | `#2563eb` |
-| `neutral` | Slate gray | `#475569` |
-
-```env
-THEME_COLOR=orange   # or: teal | purple | blue | neutral
-```
-
-The theme applies to the web form, admin panel, and email templates.
-
-**Reactivating alerts:** deactivated alerts can be re-enabled from the admin panel at `/admin` using the "Reactivar" button.
-
----
-
-## 🔧 Admin Panel
-
-Access the admin dashboard at `/admin` (password-protected via `ADMIN_PASSWORD`).
-
-**Features:**
-- 📊 **8 KPI stats**: active alerts, total, users, emails sent/failed, success rate, deleted %, products processed
-- 📧 **Users & limits**: view alerts per email, set per-email alert limits, filter users with active alerts
-- 🔔 **Alerts table**: search/filter by keyword, email, frequency and active status; inline editing of keywords, price, category and frequency
-- ✏️ **Inline edit**: click any row's search term to edit keywords, price range and category
-- ♻️ **Reactivate** deleted alerts with one click
-- 🗑️ **Permanent delete** with double confirmation
-- 📄 **Pagination** on both tables (10 rows/page)
-
-```env
-ADMIN_PASSWORD=yourpassword       # required to enable admin
-MAX_ALERTS_PER_EMAIL=10           # global limit, overridable per-email in admin
-EMAIL_FAILURE_THRESHOLD=5         # auto-deactivate after N consecutive failures
-```
-
----
-
-## ⚠️ Notes
-
-- Uses Puppeteer headless browser to bypass Wallapop's CloudFront protection
-- Recommended minimum interval: 60-90 seconds to avoid overloading the server
-- The web worker polls subscriptions in parallel (default: 3 concurrent) — configurable via `WORKER_CONCURRENCY`
-- Digest items (daily/weekly) are persisted in SQLite and survive server restarts
-- Seen items are stored per-subscription in SQLite (web) or JSON file (CLI)
-
-### Worker concurrency
-
-By default the worker processes up to 3 subscriptions in parallel, each using its own browser context (page). Increase this for more users, decrease it to save memory:
-
-```env
-WORKER_CONCURRENCY=3   # default: 3 parallel subscriptions
-```
-
-Each concurrent worker shares the same Chromium browser instance but uses separate pages to avoid state collisions.
-
----
-
-## 📄 License
+## 📄 Licencia
 
 MIT © [Enrique Mendoza](https://github.com/enrimr)
 
-*If you use this project, a mention or star ⭐ is appreciated!*
+*Si usas este proyecto, ¡se agradece una mención o estrella ⭐!*
