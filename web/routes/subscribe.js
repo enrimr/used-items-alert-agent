@@ -22,11 +22,13 @@ const {
   getSubscription,
   verifySubscription,
   deleteSubscription,
+  updateWebhook,
   countActiveAlertsByEmail,
   getAlertLimitForEmail,
 } = require('../db');
 const { sendConfirmationEmail, sendVerificationEmail } = require('../../src/mailer');
 const { CATEGORIES } = require('../../src/categories');
+const { validatePriceRange, isValidEmail } = require('../../src/utils');
 const { v4: uuidv4 } = require('uuid');
 
 // Rate limiting: max 5 subscribes per IP per 15 min
@@ -79,15 +81,14 @@ function csrfForHtmlForms(req, res, next) {
 router.post('/subscribe', subscribeLimiter, csrfForHtmlForms, async (req, res) => {
   const {
     email, keywords, min_price, max_price,
-    category_id, email_frequency, shipping_only,
+    category_id, email_frequency, shipping_only, webhook_url,
   } = req.body;
 
   if (!email || !keywords) {
     return res.status(400).json({ error: 'Email y palabras clave son requeridos' });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!isValidEmail(email)) {
     return res.status(400).json({ error: 'Email no válido' });
   }
 
@@ -98,14 +99,9 @@ router.post('/subscribe', subscribeLimiter, csrfForHtmlForms, async (req, res) =
   const minPrice = min_price ? parseFloat(min_price) : null;
   const maxPrice = max_price ? parseFloat(max_price) : null;
 
-  if (minPrice !== null && isNaN(minPrice)) {
-    return res.status(400).json({ error: 'Precio mínimo no válido' });
-  }
-  if (maxPrice !== null && isNaN(maxPrice)) {
-    return res.status(400).json({ error: 'Precio máximo no válido' });
-  }
-  if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
-    return res.status(400).json({ error: 'El precio mínimo no puede ser mayor que el máximo' });
+  const priceValidation = validatePriceRange(minPrice, maxPrice);
+  if (!priceValidation.ok) {
+    return res.status(400).json({ error: priceValidation.error });
   }
 
   const activeCount = countActiveAlertsByEmail(email);
@@ -114,6 +110,13 @@ router.post('/subscribe', subscribeLimiter, csrfForHtmlForms, async (req, res) =
     return res.status(429).json({
       error: `Has alcanzado el límite de ${limit} alerta${limit !== 1 ? 's' : ''} activa${limit !== 1 ? 's' : ''} para este email.`
     });
+  }
+
+  // Validate webhook URL if provided
+  if (webhook_url && webhook_url.trim()) {
+    if (!/^https?:\/\/.+/.test(webhook_url.trim())) {
+      return res.status(400).json({ error: 'La URL del webhook debe comenzar con http:// o https://' });
+    }
   }
 
   // ¿Requiere verificación de email?
@@ -133,6 +136,11 @@ router.post('/subscribe', subscribeLimiter, csrfForHtmlForms, async (req, res) =
       verified:          !requireVerification,   // verificado automáticamente si no se exige
       verificationToken,
     });
+
+    // Persist webhook URL if provided
+    if (webhook_url && webhook_url.trim()) {
+      try { updateWebhook(id, webhook_url.trim()); } catch (e) { /* invalid url — ignore */ }
+    }
 
     const sub = getSubscription(id);
 

@@ -6,6 +6,7 @@
 require('dotenv').config();
 
 const { CATEGORIES } = require('./categories');
+const { validatePriceRange } = require('./utils');
 
 function loadConfig() {
   const keywords = process.env.KEYWORDS || '';
@@ -18,18 +19,9 @@ function loadConfig() {
   const minPrice = process.env.MIN_PRICE ? parseFloat(process.env.MIN_PRICE) : null;
   const maxPrice = process.env.MAX_PRICE ? parseFloat(process.env.MAX_PRICE) : null;
 
-  if (minPrice !== null && isNaN(minPrice)) {
-    console.error('❌ Error: MIN_PRICE debe ser un número válido');
-    process.exit(1);
-  }
-
-  if (maxPrice !== null && isNaN(maxPrice)) {
-    console.error('❌ Error: MAX_PRICE debe ser un número válido');
-    process.exit(1);
-  }
-
-  if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
-    console.error('❌ Error: MIN_PRICE no puede ser mayor que MAX_PRICE');
+  const priceValidation = validatePriceRange(minPrice, maxPrice);
+  if (!priceValidation.ok) {
+    console.error(`❌ Error: ${priceValidation.error}`);
     process.exit(1);
   }
 
