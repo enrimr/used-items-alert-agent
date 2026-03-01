@@ -278,6 +278,36 @@ MAX_ALERTS_PER_EMAIL=10
 
 ---
 
+## 🚨 Admin alerts on scraper failure
+
+When the scraper fails **N consecutive times** for the same subscription, an alert email is automatically sent to the site administrator.
+
+**Configure in `.env`:**
+```env
+ADMIN_EMAIL=admin@tudominio.com      # recipient — leave empty to disable
+SCRAPER_FAILURE_THRESHOLD=3          # default: 3 consecutive failures
+```
+
+**What the email contains:**
+- User email and search keywords of the affected subscription
+- Number of consecutive failures
+- Last error message
+- Link to the admin panel
+
+**Behavior:**
+- The alert is sent **only once** per threshold crossing (not on every subsequent failure)
+- The counter resets automatically when the subscription processes successfully again
+- Independent from `EMAIL_FAILURE_THRESHOLD` (which controls email delivery failures, not scraper failures)
+
+**In the logs:**
+```
+✗ [user@email.com] "ps5" → error: Timeout waiting for API
+⚠️ [user@email.com] "ps5" → fallo scraper 3/3
+🚨 [user@email.com] "ps5" → enviando alerta al admin (admin@tudominio.com)...
+```
+
+---
+
 ## 📧 Email Verification
 
 When enabled, users must confirm their email address before their alert becomes active. This prevents abuse (alerts created with someone else's email) and ensures delivery quality.

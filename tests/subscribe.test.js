@@ -24,11 +24,13 @@ process.env.BASE_URL   = 'http://localhost:3000';
   Object.keys(require.cache).forEach(k => { if (k.includes(m)) delete require.cache[k]; });
 });
 
-// Mock sendConfirmationEmail para no hacer peticiones reales de email
+// Mock del módulo de email para no hacer peticiones reales
 jest.mock('../src/mailer', () => ({
-  sendConfirmationEmail: jest.fn().mockResolvedValue(true),
-  sendAlertEmail:        jest.fn().mockResolvedValue(true),
-  verifyEmailConfig:     jest.fn().mockResolvedValue({ ok: true }),
+  sendConfirmationEmail:  jest.fn().mockResolvedValue(true),
+  sendVerificationEmail:  jest.fn().mockResolvedValue(true),
+  sendAlertEmail:         jest.fn().mockResolvedValue(true),
+  sendAdminAlert:         jest.fn().mockResolvedValue(true),
+  verifyEmailConfig:      jest.fn().mockResolvedValue({ ok: true }),
 }));
 
 const request = require('supertest');

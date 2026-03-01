@@ -417,4 +417,80 @@ async function sendVerificationEmail(toEmail, sub) {
   });
 }
 
-module.exports = { send, sendAlertEmail, sendConfirmationEmail, sendVerificationEmail, verifyEmailConfig };
+/**
+ * Envía un email de alerta al administrador del sitio cuando el scraper
+ * falla N veces consecutivas para una suscripción.
+ *
+ * Configura el destinatario con ADMIN_EMAIL en .env.
+ * Si no está configurado, la función no hace nada (no lanza error).
+ *
+ * @param {string} subscriptionEmail  — email del usuario cuya alerta falla
+ * @param {string} keywords           — keywords de la suscripción afectada
+ * @param {number} failCount          — número de fallos consecutivos
+ * @param {string} errorMessage       — mensaje del último error
+ * @returns {Promise<boolean>}
+ */
+async function sendAdminAlert(subscriptionEmail, keywords, failCount, errorMessage) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) return false;
+
+  const fromAddr = getSenderAddress();
+  if (!fromAddr) return false;
+
+  const t       = getTheme();
+  const subject = `🚨 Worker: ${failCount} fallos consecutivos — "${keywords}"`;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f7fa;font-family:-apple-system,sans-serif;">
+  <div style="max-width:520px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:24px 20px;">
+      <div style="font-size:22px;font-weight:800;color:#fff;">🚨 Alerta del scraper</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">${failCount} fallos consecutivos detectados</div>
+    </div>
+    <div style="padding:24px 20px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;width:40%">Suscripción</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${subscriptionEmail}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Búsqueda</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;">${keywords}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#888;font-size:13px;">Fallos</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:13px;color:#ef4444;">${failCount} consecutivos</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#888;font-size:13px;vertical-align:top;">Último error</td>
+          <td style="padding:8px 0;font-size:12px;color:#6b7280;word-break:break-word;">${errorMessage}</td>
+        </tr>
+      </table>
+      <div style="margin-top:16px;padding:12px;background:#fef2f2;border-radius:8px;border:1px solid #fecaca;font-size:13px;color:#991b1b;">
+        ⚠️ El worker ha reiniciado el navegador automáticamente. Si los errores persisten, revisa el estado del servicio.
+      </div>
+    </div>
+    <div style="padding:16px 20px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
+      <a href="${process.env.BASE_URL || 'http://localhost:3000'}/admin"
+         style="font-size:13px;color:${t.primary};text-decoration:none;font-weight:600;">
+        🔧 Ver panel de administración →
+      </a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `🚨 ALERTA DEL SCRAPER\n\nSuscripción: ${subscriptionEmail}\nBúsqueda: "${keywords}"\nFallos consecutivos: ${failCount}\nÚltimo error: ${errorMessage}\n\nEl worker ha reiniciado el navegador automáticamente.\n`;
+
+  return send({
+    to:          adminEmail,
+    fromAddress: `"Wallapop Alertas" <${fromAddr}>`,
+    subject,
+    html,
+    text,
+  });
+}
+
+module.exports = { send, sendAlertEmail, sendConfirmationEmail, sendVerificationEmail, sendAdminAlert, verifyEmailConfig };

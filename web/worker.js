@@ -4,7 +4,7 @@
  */
 
 const { fetchItems, createBrowser } = require('../src/scraper');
-const { sendAlertEmail } = require('../src/mailer');
+const { sendAlertEmail, sendAdminAlert } = require('../src/mailer');
 const {
   getActiveSubscriptions,
   filterNewItems,
@@ -38,8 +38,13 @@ function shouldSendDigest(sub) {
 }
 
 const { CATEGORIES } = require('../src/categories');
-const POLL_INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
-const CONCURRENCY = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
+const POLL_INTERVAL_MS    = parseInt(process.env.WORKER_INTERVAL_SECONDS || '120', 10) * 1000;
+const CONCURRENCY         = Math.max(1, parseInt(process.env.WORKER_CONCURRENCY || '2', 10));
+const SCRAPER_FAIL_THRESHOLD = Math.max(1, parseInt(process.env.SCRAPER_FAILURE_THRESHOLD || '3', 10));
+
+// Contador de fallos consecutivos del scraper por suscripción (en memoria)
+// Se resetea cuando la suscripción procesa correctamente
+const scraperErrors = new Map(); // subscriptionId → count
 
 let browser     = null;
 let browserReady = Promise.resolve(); // Promise-based mutex: sin busy-wait ni timers
@@ -180,10 +185,28 @@ async function processSubscription(sub) {
       }
     }
 
+    // Éxito: resetear contador de errores del scraper
+    scraperErrors.delete(sub.id);
     updateLastRun(sub.id);
+
   } catch (err) {
     console.error(`  ✗ [${sub.email}] "${sub.keywords}" → error: ${err.message}`);
     await closeBrowser();
+
+    // Incrementar contador de fallos del scraper para esta suscripción
+    const prevErrors = scraperErrors.get(sub.id) || 0;
+    const newErrors  = prevErrors + 1;
+    scraperErrors.set(sub.id, newErrors);
+
+    console.warn(`  ⚠️ [${sub.email}] "${sub.keywords}" → fallo scraper ${newErrors}/${SCRAPER_FAIL_THRESHOLD}`);
+
+    // Notificar al admin si se supera el umbral (solo en el ciclo exacto, no en todos los siguientes)
+    if (newErrors === SCRAPER_FAIL_THRESHOLD && process.env.ADMIN_EMAIL) {
+      console.warn(`  🚨 [${sub.email}] "${sub.keywords}" → enviando alerta al admin (${process.env.ADMIN_EMAIL})...`);
+      sendAdminAlert(sub.email, sub.keywords, newErrors, err.message).catch(e => {
+        console.error(`  [Worker] Error enviando alerta al admin: ${e.message}`);
+      });
+    }
   }
 }
 
