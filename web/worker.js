@@ -3,8 +3,10 @@
  * Se ejecuta en un bucle periódico enviando emails con los nuevos productos
  */
 
-const { fetchItems, createBrowser } = require('../src/scraper');
+const { fetchItems } = require('../src/scraper');
+const { ensureBrowser, closeBrowser } = require('../src/browser');
 const { sendAlertEmail, sendAdminAlert } = require('../src/mailer');
+const { dispatchWebhook, buildPayload } = require('../src/webhook');
 const {
   getActiveSubscriptions,
   filterNewItems,
@@ -46,39 +48,8 @@ const SCRAPER_FAIL_THRESHOLD = Math.max(1, parseInt(process.env.SCRAPER_FAILURE_
 // Se resetea cuando la suscripción procesa correctamente
 const scraperErrors = new Map(); // subscriptionId → count
 
-let browser     = null;
-let browserReady = Promise.resolve(); // Promise-based mutex: sin busy-wait ni timers
-let cycleCount  = 0;
-let running     = false;
-
-/**
- * Devuelve el browser compartido, creándolo si no existe.
- * Usa una Promise como mutex real: las coroutines que llegan mientras
- * el browser se está creando esperan en `await browserReady` sin timers.
- */
-async function ensureBrowser() {
-  await browserReady; // espera a que cualquier creación en curso termine
-
-  if (!browser) {
-    // Crear una nueva Promise que bloqueará a los que lleguen después
-    let resolve;
-    browserReady = new Promise(r => { resolve = r; });
-    try {
-      browser = await createBrowser(process.env.HEADLESS !== 'false');
-    } finally {
-      resolve(); // desbloquea a todos los waiters de golpe
-    }
-  }
-  return browser;
-}
-
-async function closeBrowser() {
-  if (browser) {
-    const b = browser;
-    browser = null; // poner a null antes de cerrar para que nadie más lo use
-    try { await b.close(); } catch (e) {}
-  }
-}
+let cycleCount = 0;
+let running    = false;
 
 /**
  * Runs an async task with a semaphore to limit concurrency.
@@ -132,13 +103,27 @@ async function processSubscription(sub) {
   const freq = sub.email_frequency || 'immediate';
 
   try {
-    const b = await ensureBrowser();
+    const b = await ensureBrowser(process.env.HEADLESS !== 'false');
     const { items } = await fetchItems(config, b);
     const newItems = filterNewItems(sub.id, items);
 
     if (newItems.length > 0) {
       // Always mark as seen so we don't re-accumulate
       markItemsSeen(sub.id, newItems.map(i => i.id));
+
+      // ── Webhook dispatch (independent of email frequency) ──────────────
+      if (sub.webhook_url) {
+        const payload = buildPayload(sub, newItems, config);
+        dispatchWebhook(sub.webhook_url, payload).then(result => {
+          if (result.ok) {
+            console.log(`  🔗 [${sub.email}] "${sub.keywords}" → webhook OK (${result.status})`);
+          } else {
+            console.warn(`  ⚠️ [${sub.email}] "${sub.keywords}" → webhook FALLÓ: ${result.error}`);
+          }
+        }).catch(err => {
+          console.error(`  ⚠️ [${sub.email}] "${sub.keywords}" → webhook error: ${err.message}`);
+        });
+      }
 
       if (freq === 'immediate') {
         // Send right away

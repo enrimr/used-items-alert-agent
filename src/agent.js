@@ -3,7 +3,8 @@
  * Orquesta el scraper, store y notificaciones en un bucle de polling
  */
 
-const { fetchItems, createBrowser } = require('./scraper');
+const { fetchItems } = require('./scraper');
+const { ensureBrowser, closeBrowser } = require('./browser');
 const { ItemStore } = require('./store');
 const {
   printHeader,
@@ -18,7 +19,6 @@ class WallapopAgent {
   constructor(config) {
     this.config = config;
     this.store = new ItemStore(config.saveToFile ? config.outputFile : null);
-    this.browser = null;
     this.running = false;
     this.cycleCount = 0;
     this.errorCount = 0;
@@ -26,17 +26,12 @@ class WallapopAgent {
   }
 
   /**
-   * Inicia el navegador
+   * Reinicia el navegador (cierra el actual y crea uno nuevo)
    */
   async _initBrowser() {
-    if (this.browser) {
-      try {
-        await this.browser.close();
-      } catch (e) {}
-    }
-
+    await closeBrowser();
     printStatus('Iniciando navegador...', 'info');
-    this.browser = await createBrowser(this.config.headless);
+    await ensureBrowser(this.config.headless);
     printStatus('Navegador listo', 'success');
   }
 
@@ -49,11 +44,12 @@ class WallapopAgent {
 
     try {
       // Reiniciar navegador cada 5 ciclos para evitar memory leaks y timeouts
-      if (!this.browser || this.cycleCount % 5 === 1) {
+      if (this.cycleCount % 5 === 1) {
         await this._initBrowser();
       }
 
-      const { items, source } = await fetchItems(this.config, this.browser);
+      const browser = await ensureBrowser(this.config.headless);
+      const { items, source } = await fetchItems(this.config, browser);
 
       printStatus(
         `Obtenidos ${items.length} productos (fuente: ${source})`,
@@ -151,12 +147,7 @@ class WallapopAgent {
 
       // Guardar estado final
       this.store.save(this.config.saveToFile);
-
-      if (this.browser) {
-        try {
-          await this.browser.close();
-        } catch (e) {}
-      }
+      await closeBrowser();
 
       const stats = this.store.getStats();
       printStatus(
@@ -191,10 +182,7 @@ class WallapopAgent {
 
     await this._initBrowser();
     await this._runCycle();
-
-    if (this.browser) {
-      await this.browser.close();
-    }
+    await closeBrowser();
 
     const stats = this.store.getStats();
     printStatus(`Completado. Total vistos: ${stats.totalSeen}`, 'success');
